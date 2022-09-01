@@ -47,7 +47,7 @@ export const Landing = () => {
       <input {...getInputProps()} />
       <motion.div className='text-5xl text-slate-700 select-none font-extralight'>[audio stretcher]</motion.div>
 
-      <motion.span className='text-slate-700 text-2xl'>{instructions}</motion.span>
+      <span className='text-slate-700 text-2xl'>{instructions}</span>
 
       {!isLoadingFile && (
         <AnimatePresence>
@@ -67,7 +67,11 @@ export const Landing = () => {
       )}
 
       <AnimatePresence>
-        {isLoadingFile && <Busy key='busy' initial={{ opacity: 0 }} exit={{ opacity: 0 }} />}
+        {isLoadingFile && (
+          <motion.span key='busy' initial={{ opacity: 0 }} exit={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Busy />
+          </motion.span>
+        )}
       </AnimatePresence>
     </main>
   );
