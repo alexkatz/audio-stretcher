@@ -45,7 +45,7 @@ export const Landing = () => {
       {...getRootProps()}
     >
       <input {...getInputProps()} />
-      <motion.div className='text-5xl text-slate-700 select-none font-extralight'>[audio stretcher]</motion.div>
+      <div className='text-5xl text-slate-700 select-none font-extralight'>[audio stretcher]</div>
 
       <span className='text-slate-700 text-2xl'>{instructions}</span>
 
