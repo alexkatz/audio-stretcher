@@ -4,5 +4,8 @@
     "project": "./tsconfig.json"
   },
   "plugins": ["@typescript-eslint", "prettier"],
-  "extends": ["next/core-web-vitals", "plugin:@typescript-eslint/recommended", "prettier"]
+  "extends": ["next/core-web-vitals", "plugin:@typescript-eslint/recommended", "prettier"],
+  "rules": {
+    "react/display-name": "off"
+  }
 }

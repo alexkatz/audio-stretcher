@@ -1,15 +1,43 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Input } from '../../common/components/Input';
+import { Busy } from '~/components/Busy';
+import { Input } from '~/components/Input';
 
 export const Landing = () => {
-  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open, acceptedFiles, fileRejections } =
-    useDropzone({
-      noClick: true,
-      maxFiles: 1,
-      accept: { 'audio/*': [] },
-      onDrop(accepted) {},
-      // TODO: https://github.com/olvb/phaze/
-    });
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [fileName, setFileName] = useState('');
+
+  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open } = useDropzone({
+    noClick: true,
+    maxFiles: 1,
+    accept: { 'audio/*': [] },
+    onDrop([accepted]) {
+      setIsLoadingFile(true);
+      if (accepted) setFileName(accepted?.name ?? 'file');
+    },
+    // TODO: https://github.com/olvb/phaze/
+  });
+
+  const instructions = useMemo(() => {
+    if (isDragReject) return 'Incompatible file. Try another...';
+    if (isDragAccept) return 'Drop anywhere...';
+    if (isLoadingFile)
+      return (
+        <>
+          Loading <span className='text-slate-400'>{fileName}</span>...
+        </>
+      );
+    return (
+      <>
+        {'paste in a youtube url, or drag in an '}
+        <span className='hover:cursor-pointer underline text-slate-400' onClick={() => open()}>
+          {'audio file'}
+        </span>
+        {'.'}
+      </>
+    );
+  }, [fileName, isDragAccept, isDragReject, isLoadingFile, open]);
 
   return (
     <main
@@ -17,23 +45,30 @@ export const Landing = () => {
       {...getRootProps()}
     >
       <input {...getInputProps()} />
-      <div>
-        <div className='text-5xl text-slate-300 select-none'>[audio stretcher]</div>
-      </div>
-      <Input
-        autoFocus
-        type='text'
-        placeholder='youtube url...'
-        disabled={isDragActive}
-        className='w-full'
-        onClick={(e) => e.stopPropagation()}
-      />
-      <span className='text-slate-500'>
-        or drag in an{' '}
-        <span className='hover:cursor-pointer underline text-slate-400' onClick={() => open()}>
-          audio file
-        </span>
-      </span>
+      <motion.div className='text-5xl text-slate-700 select-none font-extralight'>[audio stretcher]</motion.div>
+
+      <motion.span className='text-slate-700 text-2xl'>{instructions}</motion.span>
+
+      {!isLoadingFile && (
+        <AnimatePresence>
+          {!isDragActive && !isLoadingFile && (
+            <Input
+              className='w-full border-slate-700 placeholder-slate-800 caret-slate-700 text-slate-400'
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              key='youtube-url'
+              type='text'
+              placeholder='youtube url...'
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+        </AnimatePresence>
+      )}
+
+      <AnimatePresence>
+        {isLoadingFile && <Busy key='busy' initial={{ opacity: 0 }} exit={{ opacity: 0 }} />}
+      </AnimatePresence>
     </main>
   );
 };
