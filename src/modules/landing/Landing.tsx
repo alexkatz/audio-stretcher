@@ -1,23 +1,41 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Busy } from '~/components/Busy';
 import { Input } from '~/components/Input';
+import { getArrayBufferFromAudioFile } from '~/audio/getArrayBufferFromAudioFile';
+import { useRouter } from 'next/router';
+import { createPlayer } from '~/audio/createPlayer';
 
 export const Landing = () => {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [fileName, setFileName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open } = useDropzone({
     noClick: true,
     maxFiles: 1,
     accept: { 'audio/*': [] },
-    onDrop([accepted]) {
-      setIsLoadingFile(true);
-      if (accepted) setFileName(accepted?.name ?? 'file');
+    async onDrop([accepted]) {
+      try {
+        if (accepted == null) throw Error('Could not load file');
+        setIsLoadingFile(true);
+        setFileName(accepted?.name ?? 'file');
+        const buffer = await getArrayBufferFromAudioFile(accepted);
+        const player = await createPlayer(buffer);
+        router.push('/analyze');
+      } catch (error) {
+        // TODO: handle error
+        console.error(error);
+      }
     },
     // TODO: https://github.com/olvb/phaze/
   });
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const instructions = useMemo(() => {
     if (isDragReject) return 'Incompatible file. Try another...';
@@ -45,15 +63,16 @@ export const Landing = () => {
       {...getRootProps()}
     >
       <input {...getInputProps()} />
-      <div className='text-5xl text-slate-700 select-none font-extralight'>[audio stretcher]</div>
+      <div className='text-5xl text-slate-500 select-none font-extralight'>[audio stretcher]</div>
 
-      <span className='text-slate-700 text-2xl'>{instructions}</span>
+      <span className='text-slate-500 text-2xl select-none'>{instructions}</span>
 
       {!isLoadingFile && (
         <AnimatePresence>
           {!isDragActive && !isLoadingFile && (
             <Input
-              className='w-full border-slate-700 placeholder-slate-800 caret-slate-700 text-slate-400'
+              className='w-full border-slate-text-slate-500 placeholder-slate-600 caret-slate-text-slate-500 text-slate-400'
+              ref={inputRef}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
