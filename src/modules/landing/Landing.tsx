@@ -3,15 +3,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Busy } from '~/components/Busy';
 import { Input } from '~/components/Input';
-import { getArrayBufferFromAudioFile } from '~/audio/getArrayBufferFromAudioFile';
 import { useRouter } from 'next/router';
-import { createPlayer } from '~/audio/createPlayer';
+import { usePlayer } from '~/audio/usePlayer';
 
 export const Landing = () => {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
-  const [fileName, setFileName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const setFile = usePlayer((player) => player.setFile);
+  const fileName = usePlayer((player) => player.fileName);
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open } = useDropzone({
     noClick: true,
@@ -21,9 +22,7 @@ export const Landing = () => {
       try {
         if (accepted == null) throw Error('Could not load file');
         setIsLoadingFile(true);
-        setFileName(accepted?.name ?? 'file');
-        const buffer = await getArrayBufferFromAudioFile(accepted);
-        const player = await createPlayer(buffer);
+        setFile(accepted);
         router.push('/analyze');
       } catch (error) {
         // TODO: handle error
