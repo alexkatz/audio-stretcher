@@ -5,14 +5,14 @@ import { Busy } from '~/components/Busy';
 import { Input } from '~/components/Input';
 import { useRouter } from 'next/router';
 import { usePlayer } from '~/audio/usePlayer';
+import { db } from 'src/common/db';
 
 export const Landing = () => {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const setFile = usePlayer((player) => player.setFile);
-  const fileName = usePlayer((player) => player.fileName);
+  const displayName = usePlayer((store) => store.displayName);
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open } = useDropzone({
     noClick: true,
@@ -22,14 +22,19 @@ export const Landing = () => {
       try {
         if (accepted == null) throw Error('Could not load file');
         setIsLoadingFile(true);
-        setFile(accepted);
-        router.push('/analyze');
+
+        await db.addSession({
+          displayName: accepted.name,
+          file: accepted,
+          source: accepted.name,
+        });
+
+        router.push('/analyze', `/analyze?source=${accepted.name}`);
       } catch (error) {
         // TODO: handle error
         console.error(error);
       }
     },
-    // TODO: https://github.com/olvb/phaze/
   });
 
   useEffect(() => {
@@ -42,7 +47,7 @@ export const Landing = () => {
     if (isLoadingFile)
       return (
         <>
-          Loading <span className='text-slate-400'>{fileName}</span>...
+          Loading <span className='text-slate-400'>{displayName}</span>...
         </>
       );
     return (
@@ -54,7 +59,7 @@ export const Landing = () => {
         {'.'}
       </>
     );
-  }, [fileName, isDragAccept, isDragReject, isLoadingFile, open]);
+  }, [displayName, isDragAccept, isDragReject, isLoadingFile, open]);
 
   return (
     <main

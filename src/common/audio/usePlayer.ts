@@ -1,14 +1,24 @@
 import create from 'zustand';
+import { AudioStretcherDb } from '../db';
 import { getArrayBufferFromAudioFile } from './getArrayBufferFromAudioFile';
+
+// TODO: https://github.com/olvb/phaze/
 
 export interface Player {
   isPlaying: boolean;
   isReady: boolean;
   isLoadingFile: boolean;
-  fileName: string;
-  setFile(file: File): void;
+
+  displayName: string;
+  source?: string;
+
+  initializeFromFile(file: File, displayName: string): Promise<void>;
+  initializeFromDb(db: AudioStretcherDb, source: string): Promise<void>;
+
   play(): void;
   pause(): void;
+
+  clear(): void;
 }
 
 export const usePlayer = create<Player>((set, get) => {
@@ -20,7 +30,7 @@ export const usePlayer = create<Player>((set, get) => {
     isReady: false,
     isLoadingFile: false,
 
-    fileName: '',
+    displayName: '',
 
     play() {
       if (!get().isReady) return;
@@ -33,7 +43,9 @@ export const usePlayer = create<Player>((set, get) => {
       bufferSource.start();
     },
     pause() {
-      if (!get().isReady) return;
+      const { isReady } = get();
+
+      if (!isReady) return;
 
       set({ isPlaying: false });
 
@@ -42,14 +54,36 @@ export const usePlayer = create<Player>((set, get) => {
       bufferSource = undefined;
     },
 
-    async setFile(file: File) {
+    clear() {
+      const { pause } = get();
+
+      pause();
+      set({ displayName: '', source: undefined, isReady: false });
+    },
+
+    async initializeFromFile(file: File, displayName = file.name) {
       set({ isLoadingFile: true });
+
       const buffer = await getArrayBufferFromAudioFile(file);
+
       audioContext = new window.AudioContext();
       audioContext.decodeAudioData(buffer, (result) => {
         audioBuffer = result;
-        set({ isReady: true, isLoadingFile: false, fileName: file.name });
+        set({ isReady: true, isLoadingFile: false, displayName });
       });
+    },
+
+    async initializeFromDb(db, source) {
+      const session = await db.getSession(source);
+
+      if (session == null) return;
+
+      const { file, displayName } = session;
+      const { initializeFromFile } = get();
+
+      set({ source });
+
+      await initializeFromFile(file, displayName);
     },
   };
 });
