@@ -1,55 +1,44 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Busy } from '~/components/Busy';
 import { Input } from '~/components/Input';
-import { useRouter } from 'next/router';
-import { usePlayer } from '~/audio/usePlayer';
-import { db } from 'src/common/db';
+import { RecentSessions } from './RecentSessions';
+import { useFileDrop } from './useFileDrop';
 
 export const Landing = () => {
-  const [isLoadingFile, setIsLoadingFile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
-  const displayName = usePlayer((store) => store.displayName);
-
-  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open } = useDropzone({
-    noClick: true,
-    maxFiles: 1,
-    accept: { 'audio/*': [] },
-    async onDrop([accepted]) {
-      try {
-        if (accepted == null) throw Error('Could not load file');
-        setIsLoadingFile(true);
-
-        await db.addSession({
-          displayName: accepted.name,
-          file: accepted,
-          source: accepted.name,
-        });
-
-        router.push('/analyze', `/analyze?source=${accepted.name}`);
-      } catch (error) {
-        // TODO: handle error
-        console.error(error);
-      }
-    },
-  });
+  const {
+    open,
+    getRootProps,
+    getInputProps,
+    isDragActive,
+    isDragAccept,
+    isDragReject,
+    isLoadingFile,
+    droppedFileName,
+  } = useFileDrop();
 
   useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleOnClickMain = useCallback(() => {
     inputRef.current?.focus();
   }, []);
 
   const instructions = useMemo(() => {
     if (isDragReject) return 'Incompatible file. Try another...';
     if (isDragAccept) return 'Drop anywhere...';
-    if (isLoadingFile)
+    if (isLoadingFile) {
       return (
         <>
-          Loading <span className='text-slate-400'>{displayName}</span>...
+          {'Loading '} <span className='text-slate-400'>{droppedFileName}</span>
+          {'...'}
         </>
       );
+    }
+
     return (
       <>
         {'paste in a youtube url, or drag in an '}
@@ -59,16 +48,16 @@ export const Landing = () => {
         {'.'}
       </>
     );
-  }, [displayName, isDragAccept, isDragReject, isLoadingFile, open]);
+  }, [droppedFileName, isDragAccept, isDragReject, isLoadingFile, open]);
 
   return (
     <main
       className='container flex flex-col items-center gap-12 min-h-screen mx-auto bg-black p-4 pt-32 focus:outline-0'
+      onClick={handleOnClickMain}
       {...getRootProps()}
     >
       <input {...getInputProps()} />
       <div className='text-5xl text-slate-500 select-none font-extralight'>[audio stretcher]</div>
-
       <span className='text-slate-500 text-2xl select-none'>{instructions}</span>
 
       {!isLoadingFile && (
@@ -96,6 +85,8 @@ export const Landing = () => {
           </motion.span>
         )}
       </AnimatePresence>
+
+      <RecentSessions className='flex-1 bg-purple-500 w-full' />
     </main>
   );
 };

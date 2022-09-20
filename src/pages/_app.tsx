@@ -5,7 +5,11 @@ import { trpc } from '../utils/trpc';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useUpdateParsedQuery } from 'src/common/useParsedQuery';
+
+const queryClient = new QueryClient();
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   const router = useRouter();
@@ -16,14 +20,15 @@ const MyApp: AppType = ({ Component, pageProps }) => {
   }, [router.asPath, updateParsedQuery]);
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <Head>
         <title>audio-stretcher</title>
         <meta name='description' content='Play back audio' />
         <link rel='icon' href='/favicon.ico' />
       </Head>
       <Component {...pageProps} />
-    </>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 };
 

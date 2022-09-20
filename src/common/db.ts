@@ -18,12 +18,24 @@ interface AudioStretcherSchema extends DBSchema {
   };
 }
 
-type Session = StoreValue<AudioStretcherSchema, 'sessions'>;
-type AddSessionOptions = Omit<Session, 'createdAt'>;
+export type AudioSession = StoreValue<AudioStretcherSchema, 'sessions'>;
+export type AddSessionOptions = Omit<AudioSession, 'createdAt'>;
+export type AudioSessionSummary = Omit<AudioSession, 'file'>;
+
+type GetSessionSummariesResponse = {
+  sessions: AudioSessionSummary[];
+  nextCursor?: Date;
+};
+
+export enum DbQueryKey {
+  Sessions = 'sessions',
+  SessionSummaries = 'session-summaries',
+}
 
 export interface AudioStretcherDb {
   addSession(options: AddSessionOptions): Promise<string | undefined>;
-  getSession(source: string): Promise<Session | undefined>;
+  getSession(source: string): Promise<AudioSession | undefined>;
+  getSessionSummaries(limit: number, cursor?: Date): Promise<GetSessionSummariesResponse>;
   close(): void;
 }
 
@@ -68,6 +80,35 @@ const createDb = (): AudioStretcherDb => {
       await ensureDbIsOpen();
 
       return db?.get('sessions', source);
+    },
+    async getSessionSummaries(limit, cursorIn) {
+      await ensureDbIsOpen();
+
+      const sessions: AudioSessionSummary[] = [];
+      const range = IDBKeyRange.upperBound(cursorIn ?? new Date());
+
+      try {
+        let cursor = await db?.transaction('sessions').store.index('createdAt').openCursor(range, 'prev');
+        let count = limit;
+
+        while (count > 0 && cursor) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { file, ...summary } = cursor.value;
+          sessions.push(summary);
+          count -= 1;
+          cursor = await cursor.continue();
+        }
+
+        return {
+          sessions,
+          nextCursor: cursor?.value.createdAt,
+        };
+      } catch (error) {
+        console.error(error);
+        return {
+          sessions,
+        };
+      }
     },
   };
 };
