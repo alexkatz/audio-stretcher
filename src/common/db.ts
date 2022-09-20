@@ -25,6 +25,7 @@ export type AudioSessionSummary = Omit<AudioSession, 'file'>;
 type GetSessionSummariesResponse = {
   sessions: AudioSessionSummary[];
   nextCursor?: number;
+  total: number;
 };
 
 export enum DbQueryKey {
@@ -87,28 +88,22 @@ const createDb = (): AudioStretcherDb => {
       const sessions: AudioSessionSummary[] = [];
       const range = IDBKeyRange.upperBound(nextCursor ?? Date.now());
 
-      try {
-        let cursor = await db?.transaction('sessions').store.index('createdAt').openCursor(range, 'prev');
-        let count = limit;
+      let cursor = await db?.transaction('sessions').store.index('createdAt').openCursor(range, 'prev');
+      let count = limit;
 
-        while (count > 0 && cursor) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { file, ...summary } = cursor.value;
-          sessions.push(summary);
-          count -= 1;
-          cursor = await cursor.continue();
-        }
-
-        return {
-          sessions,
-          nextCursor: cursor?.value.createdAt,
-        };
-      } catch (error) {
-        console.error(error);
-        return {
-          sessions,
-        };
+      while (count > 0 && cursor) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { file, ...summary } = cursor.value;
+        sessions.push(summary);
+        count -= 1;
+        cursor = await cursor.continue();
       }
+
+      return {
+        sessions,
+        nextCursor: cursor?.value.createdAt,
+        total: (await cursor?.source.count()) ?? 0,
+      };
     },
   };
 };

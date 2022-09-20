@@ -52,7 +52,7 @@ export const Landing = () => {
 
   return (
     <main
-      className='container flex flex-col items-center gap-12 min-h-screen mx-auto bg-black p-4 pt-32 focus:outline-0'
+      className='container flex flex-col items-center gap-12 h-screen mx-auto bg-black p-4 pt-32 focus:outline-0'
       onClick={handleOnClickMain}
       {...getRootProps()}
     >
@@ -86,7 +86,7 @@ export const Landing = () => {
         )}
       </AnimatePresence>
 
-      <RecentSessions className='flex-1 bg-purple-500 w-full' />
+      <RecentSessions className='flex-1  w-full' />
     </main>
   );
 };
