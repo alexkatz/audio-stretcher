@@ -11,10 +11,10 @@ interface AudioStretcherSchema extends DBSchema {
       source: string;
       displayName: string;
       file: File;
-      createdAt: Date;
+      createdAt: number;
     };
     key: string;
-    indexes: { source: string; createdAt: Date };
+    indexes: { source: string; createdAt: number };
   };
 }
 
@@ -24,7 +24,7 @@ export type AudioSessionSummary = Omit<AudioSession, 'file'>;
 
 type GetSessionSummariesResponse = {
   sessions: AudioSessionSummary[];
-  nextCursor?: Date;
+  nextCursor?: number;
 };
 
 export enum DbQueryKey {
@@ -35,7 +35,7 @@ export enum DbQueryKey {
 export interface AudioStretcherDb {
   addSession(options: AddSessionOptions): Promise<string | undefined>;
   getSession(source: string): Promise<AudioSession | undefined>;
-  getSessionSummaries(limit: number, cursor?: Date): Promise<GetSessionSummariesResponse>;
+  getSessionSummaries(limit: number, nextCursor?: number): Promise<GetSessionSummariesResponse>;
   close(): void;
 }
 
@@ -72,7 +72,7 @@ const createDb = (): AudioStretcherDb => {
 
       return await db?.put('sessions', {
         ...options,
-        createdAt: new Date(),
+        createdAt: Date.now(),
       });
     },
 
@@ -81,11 +81,11 @@ const createDb = (): AudioStretcherDb => {
 
       return db?.get('sessions', source);
     },
-    async getSessionSummaries(limit, cursorIn) {
+    async getSessionSummaries(limit, nextCursor) {
       await ensureDbIsOpen();
 
       const sessions: AudioSessionSummary[] = [];
-      const range = IDBKeyRange.upperBound(cursorIn ?? new Date());
+      const range = IDBKeyRange.upperBound(nextCursor ?? Date.now());
 
       try {
         let cursor = await db?.transaction('sessions').store.index('createdAt').openCursor(range, 'prev');
