@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { usePlayer } from '~/audio/usePlayer';
 import { Busy } from '~/components/Busy';
 import { Input } from '~/components/Input';
 import { RecentSessions } from './RecentSessions';
@@ -21,6 +22,7 @@ export const Landing = () => {
 
   useEffect(() => {
     inputRef.current?.focus();
+    usePlayer.getState().clear();
   }, []);
 
   const handleOnClickMain = useCallback(() => {
@@ -53,30 +55,26 @@ export const Landing = () => {
   return (
     <main
       className='container flex flex-col items-center gap-12 h-screen mx-auto bg-black p-4 pt-32 focus:outline-0'
-      onClick={handleOnClickMain}
       {...getRootProps()}
+      onClick={handleOnClickMain}
     >
       <input {...getInputProps()} />
       <div className='text-5xl text-slate-500 select-none font-extralight'>[audio stretcher]</div>
       <span className='text-slate-500 text-2xl select-none'>{instructions}</span>
 
-      {!isLoadingFile && (
-        <AnimatePresence>
-          {!isDragActive && !isLoadingFile && (
-            <Input
-              className='w-full border-slate-text-slate-500 placeholder-slate-600 caret-slate-text-slate-500 text-slate-400'
-              ref={inputRef}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              key='youtube-url'
-              type='text'
-              placeholder='youtube url...'
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
-        </AnimatePresence>
-      )}
+      <AnimatePresence>
+        <Input
+          className='w-full border-slate-text-slate-500 placeholder-slate-600 caret-slate-text-slate-500 text-slate-400'
+          ref={inputRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }}
+          exit={{ opacity: 0 }}
+          key='youtube-url'
+          type='text'
+          placeholder='youtube url...'
+          onClick={(e) => e.stopPropagation()}
+        />
+      </AnimatePresence>
 
       <AnimatePresence>
         {isLoadingFile && (
@@ -86,7 +84,7 @@ export const Landing = () => {
         )}
       </AnimatePresence>
 
-      <RecentSessions className='flex-1  w-full' />
+      <RecentSessions animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }} className='flex-1  w-full' />
     </main>
   );
 };

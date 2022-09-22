@@ -4,7 +4,7 @@ import { getArrayBufferFromAudioFile } from './getArrayBufferFromAudioFile';
 
 // TODO: https://github.com/olvb/phaze/
 
-export interface Player {
+export type Player = {
   isPlaying: boolean;
   isReady: boolean;
   isLoadingFile: boolean;
@@ -19,18 +19,22 @@ export interface Player {
   pause(): void;
 
   clear(): void;
-}
+};
+
+const defaultValues: StripFunctions<Player> = {
+  displayName: '',
+  isPlaying: false,
+  isLoadingFile: false,
+  isReady: false,
+  source: undefined,
+};
 
 export const usePlayer = create<Player>((set, get) => {
   let audioContext: AudioContext;
   let audioBuffer: AudioBuffer;
   let bufferSource: AudioBufferSourceNode | undefined;
   return {
-    isPlaying: false,
-    isReady: false,
-    isLoadingFile: false,
-
-    displayName: '',
+    ...defaultValues,
 
     play() {
       if (!get().isReady) return;
@@ -43,9 +47,7 @@ export const usePlayer = create<Player>((set, get) => {
       bufferSource.start();
     },
     pause() {
-      const { isReady } = get();
-
-      if (!isReady) return;
+      if (!get().isReady) return;
 
       set({ isPlaying: false });
 
@@ -55,10 +57,8 @@ export const usePlayer = create<Player>((set, get) => {
     },
 
     clear() {
-      const { pause } = get();
-
-      pause();
-      set({ displayName: '', source: undefined, isReady: false });
+      get().pause();
+      set(defaultValues);
     },
 
     async initializeFromFile(file: File, displayName = file.name) {
@@ -79,11 +79,11 @@ export const usePlayer = create<Player>((set, get) => {
       if (session == null) return;
 
       const { file, displayName } = session;
-      const { initializeFromFile } = get();
 
       set({ source });
 
-      await initializeFromFile(file, displayName);
+      await db.updateLastOpenedAt(source);
+      await get().initializeFromFile(file, displayName);
     },
   };
 });

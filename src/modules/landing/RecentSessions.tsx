@@ -1,63 +1,75 @@
-import { useMemo, useRef } from 'react';
+import { forwardRef, Ref, useEffect, useMemo, useRef } from 'react';
 import { c } from '~/utils/classnames';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { db, DbQueryKey } from 'src/common/db';
+import { db } from 'src/common/db';
+import { RecentSession } from './RecentSession';
+import { DbQueryKey } from 'src/common/DbQueryKey';
+import { motion } from 'framer-motion';
+import { mergeRefs } from '~/utils/mergeRefs';
 
-const PAGE_SIZE = 4;
+const PAGE_SIZE = 10;
 
 type Props = {
   className?: string;
 };
 
-export const RecentSessions = ({ className }: Props) => {
-  const { data, fetchNextPage } = useInfiniteQuery(
-    [DbQueryKey.SessionSummaries],
-    async ({ pageParam = undefined }) => await db.getSessionSummaries(PAGE_SIZE, pageParam),
-    {
+export const RecentSessions = motion(
+  forwardRef(({ className }: Props, ref: Ref<HTMLDivElement>) => {
+    const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+      queryKey: [DbQueryKey.SessionSummaries],
       getNextPageParam: (lastPage) => lastPage.nextCursor,
-    },
-  );
+      queryFn: async ({ pageParam }: { pageParam?: string }) => await db.getSessionSummaries(PAGE_SIZE, pageParam),
+    });
 
-  const parentRef = useRef<HTMLDivElement>(null);
+    const parentRef = useRef<HTMLDivElement>(null);
 
-  const firstPage = data?.pages[0];
+    const firstPage = data?.pages[0];
+    const total = useMemo(() => firstPage?.total ?? PAGE_SIZE, [firstPage?.total]);
+    const summaries = useMemo(() => data?.pages.flatMap((page) => page.summaries) ?? [], [data]);
 
-  const total = useMemo(() => firstPage?.total ?? PAGE_SIZE, [firstPage?.total]);
-  const allRows = useMemo(() => data?.pages.flatMap((page) => page.sessions) ?? [], [data]);
+    const virtualizer = useVirtualizer({
+      count: total,
+      getScrollElement: () => parentRef.current,
+      estimateSize: () => 60,
+      overscan: 5,
+      getItemKey: (index) => summaries[index]?.source ?? index,
+    });
 
-  const rowVirtualizer = useVirtualizer({
-    count: 30,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 100,
-    overscan: 5,
-    getItemKey: (index) => index,
-  });
+    const virtualItems = virtualizer.getVirtualItems();
+    const totalSize = virtualizer.getTotalSize();
 
-  return (
-    <div className={c('overflow-y-scroll', className)} ref={parentRef}>
-      <div
-        className='w-full relative'
-        style={{
-          height: rowVirtualizer.getTotalSize(),
-        }}
-      >
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-          <div
-            key={virtualRow.key}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: virtualRow.size,
-              transform: `translateY(${virtualRow.start}px)`,
-            }}
-          >
-            Row {virtualRow.index}
-          </div>
-        ))}
+    useEffect(() => {
+      const lastItem = virtualItems.at(-1);
+
+      if (lastItem && lastItem.index > summaries.length - 1 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage, summaries.length, virtualItems]);
+
+    return (
+      <div className={c('overflow-y-scroll', className)} ref={mergeRefs(parentRef, ref)}>
+        <div className='w-full relative' style={{ height: totalSize }}>
+          {virtualItems.map(({ key, size, start, index }) => {
+            const summary = summaries[index];
+            return !summary ? null : (
+              <div
+                key={key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: size,
+                  transform: `translateY(${start}px)`,
+                }}
+              >
+                <RecentSession summary={summary} />
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }),
+);

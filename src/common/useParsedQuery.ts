@@ -1,10 +1,10 @@
 import queryString, { ParsedQuery } from 'query-string';
 import create from 'zustand';
 
-interface ParsedQueryStore {
+type ParsedQueryStore = {
   parsedQuery: ParsedQuery;
   updateQuery(pathname: string): void;
-}
+};
 
 const useParsedQueryStore = create<ParsedQueryStore>((set) => ({
   parsedQuery: {},

@@ -2,7 +2,8 @@ import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AddSessionOptions, db, DbQueryKey } from 'src/common/db';
+import { AddSessionOptions, db } from 'src/common/db';
+import { DbQueryKey } from 'src/common/DbQueryKey';
 
 export const useFileDrop = () => {
   const router = useRouter();

@@ -25,9 +25,12 @@ export const Analyze = () => {
   }, [player]);
 
   const handleOnClickBack = useCallback(() => {
-    player.clear();
     router.push('/');
-  }, [player, router]);
+  }, [router]);
+
+  if (!player.isReady) {
+    return <div>almost ready...</div>;
+  }
 
   return (
     <div className='flex flex-col items-center relative h-screen'>
