@@ -11,7 +11,7 @@ interface AudioStretcherSchema extends DBSchema {
     value: {
       source: string;
       displayName: string;
-      file: File;
+      audioBuffer: AudioBuffer;
       createdAt: string;
       lastOpenedAt: string;
     };
@@ -21,8 +21,8 @@ interface AudioStretcherSchema extends DBSchema {
 }
 
 export type AudioSession = StoreValue<AudioStretcherSchema, 'sessions'>;
-export type AddSessionOptions = Omit<AudioSession, 'createdAt' | 'lastOpenedAt'>;
-export type AudioSessionSummary = Omit<AudioSession, 'file'>;
+export type AddSessionParams = Omit<AudioSession, 'createdAt' | 'lastOpenedAt'>;
+export type AudioSessionSummary = Omit<AudioSession, 'audioBuffer'>;
 
 type GetSessionSummariesResponse = {
   summaries: AudioSessionSummary[];
@@ -31,7 +31,7 @@ type GetSessionSummariesResponse = {
 };
 
 export type AudioStretcherDb = {
-  addSession(options: AddSessionOptions): Promise<string | undefined>;
+  addSession(options: AddSessionParams): Promise<AudioSession | undefined>;
   getSession(source: string): Promise<AudioSession | undefined>;
   getSessionSummaries(limit: number, nextCursor?: string): Promise<GetSessionSummariesResponse>;
   updateLastOpenedAt(source: string): Promise<void>;
@@ -81,12 +81,17 @@ const createDb = (): AudioStretcherDb => {
 
     async addSession(options) {
       await ensureDbIsOpen();
+
       const createdAt = dayjs().toISOString();
-      return await db?.put('sessions', {
+      const session: AudioSession = {
         ...options,
         createdAt,
         lastOpenedAt: createdAt,
-      });
+      };
+
+      const key = await db?.put('sessions', session);
+
+      return key != null ? session : undefined;
     },
 
     async getSession(source) {
@@ -105,7 +110,8 @@ const createDb = (): AudioStretcherDb => {
 
       while (count > 0 && cursor) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { file, ...summary } = cursor.value;
+        const { audioBuffer, ...summary } = cursor.value;
+
         summaries.push({
           ...summary,
           lastOpenedAt: summary.lastOpenedAt ?? summary.createdAt,

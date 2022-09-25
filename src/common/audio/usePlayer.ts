@@ -1,30 +1,29 @@
 import create from 'zustand';
-import { AudioStretcherDb } from '../db';
-import { getArrayBufferFromAudioFile } from './getArrayBufferFromAudioFile';
+import { getAudioContext } from './getAudioContext';
 
 // TODO: https://github.com/olvb/phaze/
+
+type InitializeParams = {
+  audioBuffer: AudioBuffer;
+  displayName: string;
+  source: string;
+};
 
 export type Player = {
   isPlaying: boolean;
   isReady: boolean;
-  isLoadingFile: boolean;
-
   displayName: string;
   source?: string;
 
-  initializeFromFile(file: File, displayName: string): Promise<void>;
-  initializeFromDb(db: AudioStretcherDb, source: string): Promise<void>;
-
+  initialize(params: InitializeParams): void;
   play(): void;
   pause(): void;
-
   clear(): void;
 };
 
 const defaultValues: StripFunctions<Player> = {
   displayName: '',
   isPlaying: false,
-  isLoadingFile: false,
   isReady: false,
   source: undefined,
 };
@@ -61,29 +60,14 @@ export const usePlayer = create<Player>((set, get) => {
       set(defaultValues);
     },
 
-    async initializeFromFile(file: File, displayName = file.name) {
-      set({ isLoadingFile: true });
-
-      const buffer = await getArrayBufferFromAudioFile(file);
-
-      audioContext = new window.AudioContext();
-      audioContext.decodeAudioData(buffer, (result) => {
-        audioBuffer = result;
-        set({ isReady: true, isLoadingFile: false, displayName });
+    initialize({ audioBuffer: buffer, displayName, source }: InitializeParams) {
+      audioContext = getAudioContext();
+      audioBuffer = buffer;
+      set({
+        isReady: true,
+        displayName,
+        source,
       });
-    },
-
-    async initializeFromDb(db, source) {
-      const session = await db.getSession(source);
-
-      if (session == null) return;
-
-      const { file, displayName } = session;
-
-      set({ source });
-
-      await db.updateLastOpenedAt(source);
-      await get().initializeFromFile(file, displayName);
     },
   };
 });

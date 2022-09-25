@@ -1,7 +1,6 @@
 // src/pages/_app.tsx
 import '../styles/globals.css';
 import type { AppType } from 'next/dist/shared/lib/utils';
-import { trpc } from '../utils/trpc';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
@@ -32,4 +31,4 @@ const MyApp: AppType = ({ Component, pageProps }) => {
   );
 };
 
-export default trpc.withTRPC(MyApp);
+export default MyApp;

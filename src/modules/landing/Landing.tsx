@@ -5,9 +5,12 @@ import { Busy } from '~/components/Busy';
 import { Input } from '~/components/Input';
 import { RecentSessions } from './RecentSessions';
 import { useFileDrop } from './useFileDrop';
+import { useYoutubeUrl } from './useYoutubeUrl';
 
 export const Landing = () => {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { youtubeUrl, setYoutubeUrl, isValidYoutubeUrl, handleGetAudioFromUrl } = useYoutubeUrl();
 
   const {
     open,
@@ -60,21 +63,41 @@ export const Landing = () => {
     >
       <input {...getInputProps()} />
       <div className='text-5xl text-slate-500 select-none font-extralight'>[audio stretcher]</div>
-      <span className='text-slate-500 text-2xl select-none'>{instructions}</span>
+      <span className='text-slate-700 text-2xl select-none'>{instructions}</span>
 
-      <AnimatePresence>
-        <Input
-          className='w-full border-slate-text-slate-500 placeholder-slate-600 caret-slate-text-slate-500 text-slate-400'
-          ref={inputRef}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }}
-          exit={{ opacity: 0 }}
-          key='youtube-url'
-          type='text'
-          placeholder='youtube url...'
-          onClick={(e) => e.stopPropagation()}
-        />
-      </AnimatePresence>
+      <div className='flex gap-2 w-full'>
+        <AnimatePresence>
+          <Input
+            key='youtube-url'
+            className='border-slate-400 flex-1 placeholder-slate-600 caret-slate-text-slate-500 text-slate-400'
+            ref={inputRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }}
+            exit={{ opacity: 0 }}
+            value={youtubeUrl}
+            onChange={(e) => setYoutubeUrl(e.target.value)}
+            type='text'
+            placeholder='youtube url...'
+            onClick={(e) => e.stopPropagation()}
+          />
+        </AnimatePresence>
+        <AnimatePresence>
+          {isValidYoutubeUrl && (
+            <motion.button
+              className='border border-slate-400 rounded px-2 bg-slate-400 text-black'
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              whileHover={{ scale: 1.03, opacity: 1 }}
+              whileTap={{ scale: 1.02 }}
+              key='get-audio'
+              onClick={handleGetAudioFromUrl}
+            >
+              get audio
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
 
       <AnimatePresence>
         {isLoadingFile && (

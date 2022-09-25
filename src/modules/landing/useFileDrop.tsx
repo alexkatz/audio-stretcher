@@ -2,19 +2,23 @@ import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AddSessionOptions, db } from 'src/common/db';
+import { AddSessionParams, db } from 'src/common/db';
 import { DbQueryKey } from 'src/common/DbQueryKey';
+import { getAudioBufferFromFile } from '~/audio/getArrayBufferFromAudioFile';
+import { usePlayer } from '~/audio/usePlayer';
 
 export const useFileDrop = () => {
   const router = useRouter();
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [droppedFileName, setDroppedFileName] = useState('');
 
+  const initializePlayer = usePlayer((player) => player.initialize);
+
   const queryClient = useQueryClient();
 
   const mutation = useMutation(
     [DbQueryKey.Sessions],
-    async (session: AddSessionOptions) => await db.addSession(session),
+    async (session: AddSessionParams) => await db.addSession(session),
   );
 
   const dropzoneState = useDropzone({
@@ -27,13 +31,23 @@ export const useFileDrop = () => {
         setIsLoadingFile(true);
         setDroppedFileName(accepted.name);
 
+        const audioBuffer = await getAudioBufferFromFile(accepted);
+        const displayName = accepted.name;
+        const source = accepted.name;
+
         await mutation.mutateAsync({
-          displayName: accepted.name,
-          file: accepted,
-          source: accepted.name,
+          displayName,
+          audioBuffer,
+          source,
         });
 
-        router.push('/analyze', `/analyze?source=${accepted.name}`);
+        initializePlayer({
+          audioBuffer,
+          displayName,
+          source,
+        });
+
+        router.push('/analyze', `/analyze?source=${source}`);
         queryClient.invalidateQueries([DbQueryKey.Sessions]);
       } catch (error) {
         // TODO: handle error

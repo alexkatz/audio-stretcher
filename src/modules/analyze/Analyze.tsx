@@ -1,34 +1,36 @@
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useRef } from 'react';
-import { db } from 'src/common/db';
+import { useCallback, useEffect } from 'react';
 import { useParsedQuery } from 'src/common/useParsedQuery';
 import { usePlayer } from '~/audio/usePlayer';
 import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';
 
 export const Analyze = () => {
-  const player = usePlayer((player) => player);
+  const isPlaying = usePlayer((player) => player.isPlaying);
+  const isReady = usePlayer((player) => player.isReady);
+  const source = usePlayer((player) => player.source);
+  const play = usePlayer((player) => player.play);
+  const pause = usePlayer((player) => player.pause);
+
   const router = useRouter();
-  const isSourceInitialized = useRef(false);
-  const { source } = useParsedQuery<{ source?: string }>();
+  const { source: urlSource } = useParsedQuery<{ source?: string }>();
 
   useEffect(() => {
-    if (!isSourceInitialized.current && source != null) {
-      player.initializeFromDb(db, source);
-      isSourceInitialized.current = true;
+    if (source == null && urlSource != null) {
+      // player.initialize()
     }
-  }, [player, source]);
+  }, [source, urlSource]);
 
   const handleOnClickPlay = useCallback(() => {
-    if (player.isPlaying) player.pause();
-    else player.play();
-  }, [player]);
+    if (isPlaying) pause();
+    else play();
+  }, [isPlaying, pause, play]);
 
   const handleOnClickBack = useCallback(() => {
     router.push('/');
   }, [router]);
 
-  if (!player.isReady) {
+  if (!isReady) {
     return <div>almost ready...</div>;
   }
 
@@ -41,7 +43,7 @@ export const Analyze = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleOnClickPlay}
-          isPlaying={player.isPlaying}
+          isPlaying={isPlaying}
         />
       </span>
     </div>
