@@ -1,25 +1,19 @@
 import { useRouter } from 'next/router';
-import { useCallback, useEffect } from 'react';
-import { useParsedQuery } from 'src/common/useParsedQuery';
+import { useCallback } from 'react';
 import { usePlayer } from '~/audio/usePlayer';
 import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';
+import { useInitializeAnalyze } from './useInitializeAnalyze';
 
 export const Analyze = () => {
   const isPlaying = usePlayer((player) => player.isPlaying);
-  const isReady = usePlayer((player) => player.isReady);
-  const source = usePlayer((player) => player.source);
+  const status = usePlayer((player) => player.status);
   const play = usePlayer((player) => player.play);
   const pause = usePlayer((player) => player.pause);
 
   const router = useRouter();
-  const { source: urlSource } = useParsedQuery<{ source?: string }>();
 
-  useEffect(() => {
-    if (source == null && urlSource != null) {
-      // player.initialize()
-    }
-  }, [source, urlSource]);
+  useInitializeAnalyze();
 
   const handleOnClickPlay = useCallback(() => {
     if (isPlaying) pause();
@@ -30,7 +24,7 @@ export const Analyze = () => {
     router.push('/');
   }, [router]);
 
-  if (!isReady) {
+  if (status !== 'ready') {
     return <div>almost ready...</div>;
   }
 
@@ -40,6 +34,7 @@ export const Analyze = () => {
       <SourceDisplay />
       <span className='mt-60'>
         <PlayButton
+          className='text-slate-500'
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleOnClickPlay}

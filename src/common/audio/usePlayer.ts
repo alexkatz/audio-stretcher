@@ -1,21 +1,19 @@
 import create from 'zustand';
+import { AudioSession } from '../db';
 import { getAudioContext } from './getAudioContext';
 
 // TODO: https://github.com/olvb/phaze/
 
-type InitializeParams = {
-  audioBuffer: AudioBuffer;
-  displayName: string;
-  source: string;
-};
+export type InitializeParams = Pick<AudioSession, 'arrayBuffer' | 'source' | 'displayName'>;
 
 export type Player = {
   isPlaying: boolean;
-  isReady: boolean;
+  status: 'ready' | 'initializing' | 'uninitialized' | 'failed-to-initialize';
   displayName: string;
   source?: string;
 
-  initialize(params: InitializeParams): void;
+  initialize(params: InitializeParams): Promise<void>;
+
   play(): void;
   pause(): void;
   clear(): void;
@@ -24,7 +22,7 @@ export type Player = {
 const defaultValues: StripFunctions<Player> = {
   displayName: '',
   isPlaying: false,
-  isReady: false,
+  status: 'uninitialized',
   source: undefined,
 };
 
@@ -32,11 +30,12 @@ export const usePlayer = create<Player>((set, get) => {
   let audioContext: AudioContext;
   let audioBuffer: AudioBuffer;
   let bufferSource: AudioBufferSourceNode | undefined;
+
   return {
     ...defaultValues,
 
     play() {
-      if (!get().isReady) return;
+      if (get().status !== 'ready') return;
 
       set({ isPlaying: true });
 
@@ -46,7 +45,7 @@ export const usePlayer = create<Player>((set, get) => {
       bufferSource.start();
     },
     pause() {
-      if (!get().isReady) return;
+      if (get().status !== 'ready') return;
 
       set({ isPlaying: false });
 
@@ -60,14 +59,18 @@ export const usePlayer = create<Player>((set, get) => {
       set(defaultValues);
     },
 
-    initialize({ audioBuffer: buffer, displayName, source }: InitializeParams) {
-      audioContext = getAudioContext();
-      audioBuffer = buffer;
-      set({
-        isReady: true,
-        displayName,
-        source,
-      });
+    async initialize({ arrayBuffer, displayName, source }) {
+      try {
+        set({ status: 'initializing' });
+
+        audioContext = getAudioContext();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        set({ status: 'ready', displayName, source });
+      } catch (error) {
+        console.error(error);
+        set({ status: 'failed-to-initialize' });
+      }
     },
   };
 });

@@ -11,7 +11,7 @@ interface AudioStretcherSchema extends DBSchema {
     value: {
       source: string;
       displayName: string;
-      audioBuffer: AudioBuffer;
+      arrayBuffer: ArrayBuffer;
       createdAt: string;
       lastOpenedAt: string;
     };
@@ -22,7 +22,7 @@ interface AudioStretcherSchema extends DBSchema {
 
 export type AudioSession = StoreValue<AudioStretcherSchema, 'sessions'>;
 export type AddSessionParams = Omit<AudioSession, 'createdAt' | 'lastOpenedAt'>;
-export type AudioSessionSummary = Omit<AudioSession, 'audioBuffer'>;
+export type AudioSessionSummary = Omit<AudioSession, 'arrayBuffer'>;
 
 type GetSessionSummariesResponse = {
   summaries: AudioSessionSummary[];
@@ -33,6 +33,7 @@ type GetSessionSummariesResponse = {
 export type AudioStretcherDb = {
   addSession(options: AddSessionParams): Promise<AudioSession | undefined>;
   getSession(source: string): Promise<AudioSession | undefined>;
+  removeSession(source: string): Promise<void>;
   getSessionSummaries(limit: number, nextCursor?: string): Promise<GetSessionSummariesResponse>;
   updateLastOpenedAt(source: string): Promise<void>;
   close(): void;
@@ -60,7 +61,7 @@ const createDb = (): AudioStretcherDb => {
         }
 
         if (!indexNames.contains('lastOpenedAt')) {
-          objectStore.createIndex('lastOpenedAt', 'lastOpenedAt', { unique: false });
+          objectStore.createIndex('lastOpenedAt', 'lastOpenedAt', { unique: true });
         }
       },
     });
@@ -99,6 +100,11 @@ const createDb = (): AudioStretcherDb => {
       return db?.get('sessions', source);
     },
 
+    async removeSession(source) {
+      await ensureDbIsOpen();
+      await db?.delete('sessions', source);
+    },
+
     async getSessionSummaries(limit, nextCursor) {
       await ensureDbIsOpen();
       const summaries: AudioSessionSummary[] = [];
@@ -110,7 +116,7 @@ const createDb = (): AudioStretcherDb => {
 
       while (count > 0 && cursor) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { audioBuffer, ...summary } = cursor.value;
+        const { arrayBuffer, ...summary } = cursor.value;
 
         summaries.push({
           ...summary,

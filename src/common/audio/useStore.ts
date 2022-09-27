@@ -1,9 +1,12 @@
 import create from 'zustand';
+import { getIsValidYoutubeUrl } from '~/utils/validateYoutubeUrl';
 import { AddSessionParams, AudioSession, db } from '../db';
-import { getAudioBufferFromArrayBuffer } from './getArrayBufferFromAudioFile';
+import { HEADER_KEYS } from '../HeaderKey';
 
 export type StoreState = {
   youtubeUrl: string;
+  setYoutubeUrl(url: string): void;
+
   downloadProgress: number;
   isDownloadingAudio: boolean;
   isValidYoutubeUrl: boolean;
@@ -14,29 +17,18 @@ export type StoreState = {
 };
 
 export const useStore = create<StoreState>((set, get) => {
-  const readAudio = async (
+  const readToArrayBuffer = async (
     reader: ReadableStreamDefaultReader<Uint8Array>,
-    arrays: Uint8Array[],
     totalLength: number,
+    array = new Uint8Array(totalLength),
     currentLength = 0,
-  ): Promise<AudioBuffer> => {
+  ): Promise<ArrayBuffer> => {
     const readResult = await reader.read();
-    if (readResult.done) {
-      const array = new Uint8Array(currentLength);
-      arrays.reduce((length, arr) => {
-        array.set(arr, length);
-        return (length += arr.length);
-      }, 0);
-      set({ isDownloadingAudio: false });
-      return await getAudioBufferFromArrayBuffer(array.buffer);
-    } else {
-      const array = readResult.value;
-      arrays.push(array);
-      currentLength += array.length;
-      const downloadProgress = currentLength / totalLength;
-      set({ downloadProgress });
-      return await readAudio(reader, arrays, totalLength, currentLength);
-    }
+    if (readResult.done) return array.buffer;
+    array.set(readResult.value, currentLength);
+    currentLength += readResult.value.length;
+    set({ downloadProgress: currentLength / totalLength });
+    return await readToArrayBuffer(reader, totalLength, array, currentLength);
   };
 
   return {
@@ -45,11 +37,24 @@ export const useStore = create<StoreState>((set, get) => {
     isDownloadingAudio: false,
     isValidYoutubeUrl: false,
 
-    async getSessionFromYoutube() {
-      if (!get().isValidYoutubeUrl) return;
-      set({ isDownloadingAudio: true });
+    setYoutubeUrl(url) {
+      set({ youtubeUrl: url, isValidYoutubeUrl: getIsValidYoutubeUrl(url) });
+    },
 
-      const { youtubeUrl } = get();
+    getSessionFromDb(source) {
+      return db.getSession(source);
+    },
+
+    createSession(params) {
+      return db.addSession(params);
+    },
+
+    async getSessionFromYoutube() {
+      const { isValidYoutubeUrl, youtubeUrl } = get();
+
+      if (!isValidYoutubeUrl) return;
+
+      set({ isDownloadingAudio: true });
 
       const session = await db.getSession(youtubeUrl);
       if (session != null) {
@@ -59,7 +64,9 @@ export const useStore = create<StoreState>((set, get) => {
 
       const res = await fetch(`/api/audio?url=${encodeURIComponent(youtubeUrl)}`);
       const stream = res.body;
-      const totalLength = Number(res.headers.get('Content-Length'));
+      res.headers.forEach((value, key) => console.log(key, value));
+      const totalLength = Number(res.headers.get(HEADER_KEYS.CONTENT_LENGTH));
+      const title = res.headers.get(HEADER_KEYS.CONTENT_TITLE);
       const reader = stream?.getReader();
 
       if (!reader) {
@@ -67,21 +74,15 @@ export const useStore = create<StoreState>((set, get) => {
         return;
       }
 
-      const audioBuffer = await readAudio(reader, [], totalLength);
+      const arrayBuffer = await readToArrayBuffer(reader, totalLength);
+
+      set({ isDownloadingAudio: false });
 
       return await db.addSession({
-        audioBuffer,
+        arrayBuffer,
         source: youtubeUrl,
-        displayName: youtubeUrl, // TODO: get title from youtube,
+        displayName: title ?? youtubeUrl,
       });
-    },
-
-    getSessionFromDb(source) {
-      return db.getSession(source);
-    },
-
-    createSession(params) {
-      return db.addSession(params);
     },
   };
 });

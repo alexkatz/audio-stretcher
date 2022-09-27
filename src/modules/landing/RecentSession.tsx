@@ -1,11 +1,62 @@
 import dayjs from 'dayjs';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
-import { motion } from 'framer-motion';
+import { motion, TargetAndTransition } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { useCallback, useMemo } from 'react';
-import { AudioSessionSummary } from 'src/common/db';
+import { MouseEvent, useCallback, useMemo } from 'react';
+import { AudioSessionSummary, db } from 'src/common/db';
+import { IoMdRemove } from 'react-icons/io';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
 
 dayjs.extend(localizedFormat);
+
+const REMOVE_SIZE = 60;
+
+type RowVariants = {
+  hover?: TargetAndTransition;
+  removeHover?: TargetAndTransition;
+  removeTap?: TargetAndTransition;
+  rest?: TargetAndTransition;
+  tap?: TargetAndTransition;
+};
+
+const textContainerVariants: RowVariants = {
+  hover: {
+    scale: 1.03,
+  },
+  tap: {
+    scale: 1.02,
+  },
+};
+
+const textVariants: RowVariants = {
+  hover: {
+    opacity: 1,
+  },
+  rest: {
+    opacity: 0.6,
+  },
+};
+
+const removeContainerVariants: RowVariants = {
+  hover: {
+    right: 0,
+    opacity: 0.5,
+  },
+  rest: {
+    right: -REMOVE_SIZE,
+    opacity: 0,
+  },
+};
+
+const removeVariants: RowVariants = {
+  removeHover: {
+    scale: 1.1,
+  },
+  removeTap: {
+    scale: 1.05,
+  },
+};
 
 type Props = {
   summary: AudioSessionSummary;
@@ -14,19 +65,61 @@ type Props = {
 export const RecentSession = ({ summary }: Props) => {
   const router = useRouter();
   const lastOpenedAt = useMemo(() => dayjs(summary.lastOpenedAt).format('LLLL'), [summary.lastOpenedAt]);
+
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation([DB_QUERY_KEY.SESSION_SUMMARIES], async (source: string) => {
+    await db.removeSession(source);
+  });
+
   const handleOnClick = useCallback(() => {
-    router.push('/analyze', `/analyze?source=${summary.source}`);
+    router.push('/analyze', `/analyze?source=${encodeURIComponent(summary.source)}`);
   }, [router, summary.source]);
+
+  const handleOnClickRemove = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      mutation.mutate(summary.source, {
+        onSuccess() {
+          queryClient.invalidateQueries([DB_QUERY_KEY.SESSION_SUMMARIES]);
+        },
+      });
+    },
+    [mutation, queryClient, summary.source],
+  );
 
   return (
     <motion.div
-      whileHover={{ scale: 1.03, opacity: 1 }}
-      whileTap={{ scale: 1.02 }}
-      className='flex flex-col items-center justify-center h-full text-2xl text-slate-500 hover:cursor-pointer opacity-60'
+      whileHover='hover'
+      initial='rest'
+      whileTap='tap'
+      className='flex flex-col items-center justify-center relative h-full text-2xl text-slate-500 hover:cursor-pointer'
       onClick={handleOnClick}
     >
-      <div className='font-light'>{summary.displayName}</div>
-      <div className='text-xs text-slate-600'>{lastOpenedAt}</div>
+      <motion.div
+        variants={textContainerVariants}
+        className='flex flex-col items-center justify-center h-full w-full relative'
+      >
+        <motion.div className='font-light truncate text-ellipsis max-w-3/4' variants={textVariants}>
+          {summary.displayName}
+        </motion.div>
+        <motion.div className='text-xs text-slate-500' variants={textVariants}>
+          {lastOpenedAt}
+        </motion.div>
+      </motion.div>
+
+      <motion.span className='absolute' variants={removeContainerVariants}>
+        <motion.button
+          whileHover='removeHover'
+          whileTap='removeTap'
+          className='h-full w-full flex items-center justify-center rounded'
+          variants={removeVariants}
+          style={{ width: REMOVE_SIZE }}
+          onClick={handleOnClickRemove}
+        >
+          <IoMdRemove size={REMOVE_SIZE} />
+        </motion.button>
+      </motion.span>
     </motion.div>
   );
 };

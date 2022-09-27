@@ -1,25 +1,15 @@
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AddSessionParams, db } from 'src/common/db';
-import { DbQueryKey } from 'src/common/DbQueryKey';
-import { getAudioBufferFromFile } from '~/audio/getArrayBufferFromAudioFile';
-import { usePlayer } from '~/audio/usePlayer';
+import { InitializeParams, usePlayer } from '~/audio/usePlayer';
+import { useStore } from '~/audio/useStore';
 
 export const useFileDrop = () => {
   const router = useRouter();
+  const createSession = useStore((store) => store.createSession);
+  const initializePlayer = usePlayer((player) => player.initialize);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [droppedFileName, setDroppedFileName] = useState('');
-
-  const initializePlayer = usePlayer((player) => player.initialize);
-
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation(
-    [DbQueryKey.Sessions],
-    async (session: AddSessionParams) => await db.addSession(session),
-  );
 
   const dropzoneState = useDropzone({
     noClick: true,
@@ -31,24 +21,16 @@ export const useFileDrop = () => {
         setIsLoadingFile(true);
         setDroppedFileName(accepted.name);
 
-        const audioBuffer = await getAudioBufferFromFile(accepted);
-        const displayName = accepted.name;
-        const source = accepted.name;
+        const params: InitializeParams = {
+          arrayBuffer: await accepted.arrayBuffer(),
+          displayName: accepted.name,
+          source: accepted.name,
+        };
 
-        await mutation.mutateAsync({
-          displayName,
-          audioBuffer,
-          source,
-        });
+        await createSession(params);
+        await initializePlayer(params);
 
-        initializePlayer({
-          audioBuffer,
-          displayName,
-          source,
-        });
-
-        router.push('/analyze', `/analyze?source=${source}`);
-        queryClient.invalidateQueries([DbQueryKey.Sessions]);
+        router.push('/analyze', `/analyze?source=${encodeURIComponent(params.source)}`);
       } catch (error) {
         // TODO: handle error
         console.error(error);

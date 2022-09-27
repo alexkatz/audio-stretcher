@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { db } from 'src/common/db';
 import { RecentSession } from './RecentSession';
-import { DbQueryKey } from 'src/common/DbQueryKey';
+import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
 import { motion } from 'framer-motion';
 import { mergeRefs } from '~/utils/mergeRefs';
 
@@ -17,7 +17,7 @@ type Props = {
 export const RecentSessions = motion(
   forwardRef(({ className }: Props, ref: Ref<HTMLDivElement>) => {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-      queryKey: [DbQueryKey.SessionSummaries],
+      queryKey: [DB_QUERY_KEY.SESSION_SUMMARIES],
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       queryFn: async ({ pageParam }: { pageParam?: string }) => await db.getSessionSummaries(PAGE_SIZE, pageParam),
     });

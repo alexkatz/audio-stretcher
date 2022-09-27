@@ -5,7 +5,10 @@ import { c } from '~/utils/classnames';
 export const Input = forwardRef(({ className, ...props }: HTMLMotionProps<'input'>, ref: Ref<HTMLInputElement>) => (
   <motion.input
     ref={ref}
-    className={c('bg-transparent placeholder-slate-500 border rounded px-2 py-1 focus:outline-0', className)}
+    className={c(
+      'bg-transparent placeholder-slate-700 caret-slate-500 text-slate-500 border rounded border-slate-500 px-2 py-1 focus:outline-0',
+      className,
+    )}
     {...props}
   />
 ));

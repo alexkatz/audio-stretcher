@@ -1,4 +1,3 @@
-export enum DbQueryKey {
-  Sessions = 'sessions',
-  SessionSummaries = 'session-summaries',
-}
+export const DB_QUERY_KEY = {
+  SESSION_SUMMARIES: 'session-summaries',
+} as const;
