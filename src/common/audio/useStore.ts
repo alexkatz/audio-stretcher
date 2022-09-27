@@ -64,7 +64,6 @@ export const useStore = create<StoreState>((set, get) => {
 
       const res = await fetch(`/api/audio?url=${encodeURIComponent(youtubeUrl)}`);
       const stream = res.body;
-      res.headers.forEach((value, key) => console.log(key, value));
       const totalLength = Number(res.headers.get(HEADER_KEYS.CONTENT_LENGTH));
       const title = res.headers.get(HEADER_KEYS.CONTENT_TITLE);
       const reader = stream?.getReader();

@@ -8,7 +8,6 @@ import { useStore } from '~/audio/useStore';
 export const useInitializeAnalyze = () => {
   const router = useRouter();
   const parsedSource = useParsedSource();
-  console.log('parsedSource', parsedSource);
   const status = usePlayer((player) => player.status);
   const initialize = usePlayer((player) => player.initialize);
   const getSessionFromDb = useStore((store) => store.getSessionFromDb);
