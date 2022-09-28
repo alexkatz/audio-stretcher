@@ -12,6 +12,8 @@ export type StoreState = {
   isValidYoutubeUrl: boolean;
 
   getSessionFromYoutube(): Promise<AudioSession | undefined>;
+  cancelGetSessionFromYoutube(): void;
+
   getSessionFromDb(source: string): Promise<AudioSession | undefined>;
   createSession(params: AddSessionParams): Promise<AudioSession | undefined>;
 };
@@ -27,9 +29,11 @@ export const useStore = create<StoreState>((set, get) => {
     if (readResult.done) return array.buffer;
     array.set(readResult.value, currentLength);
     currentLength += readResult.value.length;
-    set({ downloadProgress: currentLength / totalLength });
+    set({ downloadProgress: currentLength / totalLength, isDownloadingAudio: currentLength !== totalLength });
     return await readToArrayBuffer(reader, totalLength, array, currentLength);
   };
+
+  let abortController: AbortController | undefined;
 
   return {
     downloadProgress: 0,
@@ -49,39 +53,52 @@ export const useStore = create<StoreState>((set, get) => {
       return db.addSession(params);
     },
 
+    cancelGetSessionFromYoutube() {
+      if (!get().isDownloadingAudio) return;
+
+      abortController?.abort();
+      abortController = undefined;
+
+      set({ downloadProgress: 0, isDownloadingAudio: false });
+    },
+
     async getSessionFromYoutube() {
-      const { isValidYoutubeUrl, youtubeUrl } = get();
+      try {
+        const { isValidYoutubeUrl, youtubeUrl } = get();
 
-      if (!isValidYoutubeUrl) return;
+        if (!isValidYoutubeUrl) return;
 
-      set({ isDownloadingAudio: true });
+        const session = await db.getSession(youtubeUrl);
+        if (session != null) {
+          return session;
+        }
 
-      const session = await db.getSession(youtubeUrl);
-      if (session != null) {
-        set({ isDownloadingAudio: false });
-        return session;
+        set({ isDownloadingAudio: true });
+
+        const res = await fetch(`/api/audio?url=${encodeURIComponent(youtubeUrl)}`, {
+          signal: (abortController = new AbortController()).signal,
+        });
+
+        const stream = res.body;
+        const totalLength = Number(res.headers.get(HEADER_KEYS.CONTENT_LENGTH));
+        const title = res.headers.get(HEADER_KEYS.CONTENT_TITLE);
+        const reader = stream?.getReader();
+
+        if (!reader) {
+          set({ isDownloadingAudio: false });
+          return;
+        }
+
+        const arrayBuffer = await readToArrayBuffer(reader, totalLength);
+
+        return await db.addSession({
+          arrayBuffer,
+          source: youtubeUrl,
+          displayName: title ?? youtubeUrl,
+        });
+      } catch (e) {
+        console.log(e);
       }
-
-      const res = await fetch(`/api/audio?url=${encodeURIComponent(youtubeUrl)}`);
-      const stream = res.body;
-      const totalLength = Number(res.headers.get(HEADER_KEYS.CONTENT_LENGTH));
-      const title = res.headers.get(HEADER_KEYS.CONTENT_TITLE);
-      const reader = stream?.getReader();
-
-      if (!reader) {
-        set({ isDownloadingAudio: false });
-        return;
-      }
-
-      const arrayBuffer = await readToArrayBuffer(reader, totalLength);
-
-      set({ isDownloadingAudio: false });
-
-      return await db.addSession({
-        arrayBuffer,
-        source: youtubeUrl,
-        displayName: title ?? youtubeUrl,
-      });
     },
   };
 });

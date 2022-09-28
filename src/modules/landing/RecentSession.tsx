@@ -7,6 +7,7 @@ import { AudioSessionSummary, db } from 'src/common/db';
 import { IoMdRemove } from 'react-icons/io';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
+import { useStore } from '~/audio/useStore';
 
 dayjs.extend(localizedFormat);
 
@@ -66,6 +67,8 @@ export const RecentSession = ({ summary }: Props) => {
   const router = useRouter();
   const lastOpenedAt = useMemo(() => dayjs(summary.lastOpenedAt).format('LLLL'), [summary.lastOpenedAt]);
 
+  const cancelDownload = useStore((store) => store.cancelGetSessionFromYoutube);
+
   const queryClient = useQueryClient();
 
   const mutation = useMutation([DB_QUERY_KEY.SESSION_SUMMARIES], async (source: string) => {
@@ -73,8 +76,9 @@ export const RecentSession = ({ summary }: Props) => {
   });
 
   const handleOnClick = useCallback(() => {
+    cancelDownload();
     router.push('/analyze', `/analyze?source=${encodeURIComponent(summary.source)}`);
-  }, [router, summary.source]);
+  }, [cancelDownload, router, summary.source]);
 
   const handleOnClickRemove = useCallback(
     (e: MouseEvent<HTMLButtonElement>) => {

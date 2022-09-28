@@ -68,7 +68,7 @@ export const usePlayer = create<Player>((set, get) => {
 
         set({ status: 'ready', displayName, source });
       } catch (error) {
-        console.error(error);
+        console.log(error);
         set({ status: 'failed-to-initialize' });
       }
     },

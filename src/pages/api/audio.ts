@@ -20,7 +20,7 @@ export default async function handler({ query: { url } }: NextApiRequest, res: N
       res,
     );
   } catch (error) {
-    console.error(error);
+    console.log(error);
     throw error;
   }
 }

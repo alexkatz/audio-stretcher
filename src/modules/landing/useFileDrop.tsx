@@ -33,7 +33,7 @@ export const useFileDrop = () => {
         router.push('/analyze', `/analyze?source=${encodeURIComponent(params.source)}`);
       } catch (error) {
         // TODO: handle error
-        console.error(error);
+        console.log(error);
       }
     },
   });
