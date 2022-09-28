@@ -3,8 +3,9 @@ import ytdl from 'ytdl-core';
 import { pipeline } from 'stream/promises';
 import { HEADER_KEYS } from 'src/common/HeaderKey';
 
-export default async function handler({ query: { url } }: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    const { url } = req.query;
     if (typeof url !== 'string' || !ytdl.validateURL(url)) {
       throw new Error('url must be a valid youtube url');
     }
@@ -21,6 +22,5 @@ export default async function handler({ query: { url } }: NextApiRequest, res: N
     );
   } catch (error) {
     console.log(error);
-    throw error;
   }
 }
