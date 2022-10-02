@@ -12,13 +12,13 @@ type Props = {
 
 export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = false }: Props) => {
   const router = useRouter();
-  const youtubeUrl = useStore((store) => store.youtubeUrl);
-  const setYoutubeUrl = useStore((store) => store.setYoutubeUrl);
-  const isValidYoutubeUrl = useStore((store) => store.isValidYoutubeUrl);
-  const getSessionFromYoutube = useStore((store) => store.getSessionFromYoutube);
-  const cancelDownload = useStore((store) => store.cancelGetSessionFromYoutube);
-  const isDownloading = useStore((store) => store.isDownloadingAudio);
-  const downloadProgress = useStore((store) => store.downloadProgress);
+  const youtubeUrl = useStore(store => store.youtubeUrl);
+  const setYoutubeUrl = useStore(store => store.setYoutubeUrl);
+  const isValidYoutubeUrl = useStore(store => store.isValidYoutubeUrl);
+  const getSessionFromYoutube = useStore(store => store.getSessionFromYoutube);
+  const cancelDownload = useStore(store => store.cancelGetSessionFromYoutube);
+  const isDownloading = useStore(store => store.isDownloadingAudio);
+  const downloadProgress = useStore(store => store.downloadProgress);
 
   const handleOnClickGetAudio = useCallback(async () => {
     if (isDownloading) {
@@ -33,7 +33,7 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
   }, [cancelDownload, getSessionFromYoutube, isDownloading, router]);
 
   return (
-    <div className='flex gap-2 w-full'>
+    <div className='flex w-full gap-2'>
       <AnimatePresence>
         <LoadableInput
           key='youtube-url'
@@ -44,17 +44,17 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
           animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }}
           exit={{ opacity: 0 }}
           value={youtubeUrl}
-          onChange={(e) => setYoutubeUrl(e.target.value)}
+          onChange={e => setYoutubeUrl(e.target.value)}
           type='text'
           placeholder='youtube url...'
           disabled={isDownloading}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
         />
       </AnimatePresence>
       <AnimatePresence>
         {isValidYoutubeUrl && (
           <motion.button
-            className='border border-slate-500 rounded px-2 bg-slate-500 text-black'
+            className='rounded border border-slate-500 bg-slate-500 px-2 text-black'
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

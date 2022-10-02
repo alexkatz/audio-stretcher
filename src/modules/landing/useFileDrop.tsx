@@ -6,8 +6,8 @@ import { useStore } from '~/audio/useStore';
 
 export const useFileDrop = () => {
   const router = useRouter();
-  const createSession = useStore((store) => store.createSession);
-  const initializePlayer = usePlayer((player) => player.initialize);
+  const createSession = useStore(store => store.createSession);
+  const initializePlayer = usePlayer(player => player.initialize);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [droppedFileName, setDroppedFileName] = useState('');
 

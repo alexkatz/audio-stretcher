@@ -12,10 +12,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await pipeline(
       ytdl(url, { filter: 'audioonly' })
-        .on('response', (response) => {
+        .on('response', response => {
           res.setHeader(HEADER_KEYS.CONTENT_LENGTH, response.headers['content-length']);
         })
-        .on('info', (info) => {
+        .on('info', info => {
           res.setHeader(HEADER_KEYS.CONTENT_TITLE, info?.videoDetails?.title);
         }),
       res,

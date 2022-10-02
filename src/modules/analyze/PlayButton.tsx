@@ -12,7 +12,7 @@ const SIZE = 44;
 export const PlayButton = motion(
   forwardRef<HTMLButtonElement, Props>(({ className, isPlaying, ...props }, ref) => {
     return (
-      <button className={c('flex justify-center items-center', className)} ref={ref} {...props}>
+      <button className={c('flex items-center justify-center', className)} ref={ref} {...props}>
         {isPlaying ? <IoIosPause size={SIZE} /> : <IoIosPlay size={SIZE} />}
       </button>
     );

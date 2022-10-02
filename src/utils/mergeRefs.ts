@@ -1,7 +1,7 @@
 export const mergeRefs =
   (...refs: (React.Ref<any> | undefined)[]) =>
   (node: any) =>
-    refs.forEach((ref) => {
+    refs.forEach(ref => {
       if (typeof ref === 'function') {
         ref(node);
       } else if (typeof ref === 'object' && ref != null) {

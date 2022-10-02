@@ -2,15 +2,16 @@ import { useRouter } from 'next/router';
 import { useCallback, useEffect } from 'react';
 import { db } from 'src/common/db';
 import { useParsedSource } from 'src/common/useParsedSource';
+import { playerIsReady } from '~/audio/playerIsReady';
 import { usePlayer } from '~/audio/usePlayer';
 import { useStore } from '~/audio/useStore';
 
 export const useInitializeAnalyze = () => {
   const router = useRouter();
   const parsedSource = useParsedSource();
-  const status = usePlayer((player) => player.status);
-  const initialize = usePlayer((player) => player.initialize);
-  const getSessionFromDb = useStore((store) => store.getSessionFromDb);
+  const status = usePlayer(player => player.status);
+  const initialize = usePlayer(player => player.initialize);
+  const getSessionFromDb = useStore(store => store.getSessionFromDb);
 
   const handleInitialize = useCallback(async () => {
     const session = parsedSource ? await getSessionFromDb(parsedSource) : undefined;
@@ -18,10 +19,11 @@ export const useInitializeAnalyze = () => {
     // TODO: if no session found in db and parsedSource is valid youtube url,
     // send back to landing and autopopulate or auto get audio
     await initialize(session);
-    if (usePlayer.getState().status === 'ready') {
+
+    if (playerIsReady(status)) {
       await db.updateLastOpenedAt(session.source);
     }
-  }, [getSessionFromDb, initialize, parsedSource]);
+  }, [getSessionFromDb, initialize, parsedSource, status]);
 
   useEffect(() => {
     if (parsedSource && status === 'uninitialized') {

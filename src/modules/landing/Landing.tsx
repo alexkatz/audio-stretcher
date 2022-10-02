@@ -52,7 +52,7 @@ export const Landing = () => {
     return (
       <>
         {'paste in a youtube url, or drag in an '}
-        <span className='hover:cursor-pointer underline font-normal text-slate-500' onClick={() => open()}>
+        <span className='font-normal text-slate-500 underline hover:cursor-pointer' onClick={() => open()}>
           {'audio file'}
         </span>
         {'.'}
@@ -62,13 +62,13 @@ export const Landing = () => {
 
   return (
     <main
-      className='container flex flex-col items-center gap-12 h-screen mx-auto bg-black p-4 pt-32 focus:outline-0'
+      className='container mx-auto flex h-screen flex-col items-center gap-12 bg-black p-4 pt-32 focus:outline-0'
       {...getRootProps()}
       onClick={handleOnClickMain}
     >
       <input {...getInputProps()} />
-      <div className='text-5xl text-slate-500 select-none font-extralight'>[audio stretcher]</div>
-      <span className=' font-extralight text-slate-500 text-2xl select-none'>{instructions}</span>
+      <div className='select-none text-5xl font-extralight text-slate-500'>[audio stretcher]</div>
+      <span className=' select-none text-2xl font-extralight text-slate-500'>{instructions}</span>
 
       <YoutubeInput inputRef={inputRef} isDragActive={isDragActive} isLoadingFile={isLoadingFile} />
 
@@ -80,7 +80,7 @@ export const Landing = () => {
         )}
       </AnimatePresence>
 
-      <RecentSessions animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }} className='flex-1  w-full' />
+      <RecentSessions animate={{ opacity: isDragActive || isLoadingFile ? 0 : 1 }} className='w-full  flex-1' />
     </main>
   );
 };

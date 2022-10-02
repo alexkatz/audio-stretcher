@@ -18,7 +18,7 @@ export const RecentSessions = motion(
   forwardRef(({ className }: Props, ref: Ref<HTMLDivElement>) => {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
       queryKey: [DB_QUERY_KEY.SESSION_SUMMARIES],
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      getNextPageParam: lastPage => lastPage.nextCursor,
       queryFn: async ({ pageParam }: { pageParam?: string }) => await db.getSessionSummaries(PAGE_SIZE, pageParam),
     });
 
@@ -26,14 +26,14 @@ export const RecentSessions = motion(
 
     const firstPage = data?.pages[0];
     const total = useMemo(() => firstPage?.total ?? PAGE_SIZE, [firstPage?.total]);
-    const summaries = useMemo(() => data?.pages.flatMap((page) => page.summaries) ?? [], [data]);
+    const summaries = useMemo(() => data?.pages.flatMap(page => page.summaries) ?? [], [data]);
 
     const virtualizer = useVirtualizer({
       count: total,
       getScrollElement: () => parentRef.current,
       estimateSize: () => 60,
       overscan: 5,
-      getItemKey: (index) => summaries[index]?.source ?? index,
+      getItemKey: index => summaries[index]?.source ?? index,
     });
 
     const virtualItems = virtualizer.getVirtualItems();
@@ -49,7 +49,7 @@ export const RecentSessions = motion(
 
     return (
       <div className={c('overflow-y-scroll', className)} ref={mergeRefs(parentRef, ref)}>
-        <div className='w-full relative' style={{ height: totalSize }}>
+        <div className='relative w-full' style={{ height: totalSize }}>
           {virtualItems.map(({ key, size, start, index }) => {
             const summary = summaries[index];
             return !summary ? null : (

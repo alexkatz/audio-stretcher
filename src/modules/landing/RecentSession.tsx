@@ -67,7 +67,7 @@ export const RecentSession = ({ summary }: Props) => {
   const router = useRouter();
   const lastOpenedAt = useMemo(() => dayjs(summary.lastOpenedAt).format('LLLL'), [summary.lastOpenedAt]);
 
-  const cancelDownload = useStore((store) => store.cancelGetSessionFromYoutube);
+  const cancelDownload = useStore(store => store.cancelGetSessionFromYoutube);
 
   const queryClient = useQueryClient();
 
@@ -97,14 +97,14 @@ export const RecentSession = ({ summary }: Props) => {
       whileHover='hover'
       initial='rest'
       whileTap='tap'
-      className='flex flex-col items-center justify-center relative h-full text-2xl text-slate-500 hover:cursor-pointer'
+      className='relative flex h-full flex-col items-center justify-center text-2xl text-slate-500 hover:cursor-pointer'
       onClick={handleOnClick}
     >
       <motion.div
         variants={textContainerVariants}
-        className='flex flex-col items-center justify-center h-full w-full relative'
+        className='relative flex h-full w-full flex-col items-center justify-center'
       >
-        <motion.div className='font-light truncate text-ellipsis max-w-3/4' variants={textVariants}>
+        <motion.div className='max-w-3/4 truncate text-ellipsis font-light' variants={textVariants}>
           {summary.displayName}
         </motion.div>
         <motion.div className='text-xs text-slate-500' variants={textVariants}>
@@ -116,7 +116,7 @@ export const RecentSession = ({ summary }: Props) => {
         <motion.button
           whileHover='removeHover'
           whileTap='removeTap'
-          className='h-full w-full flex items-center justify-center rounded'
+          className='flex h-full w-full items-center justify-center rounded'
           variants={removeVariants}
           style={{ width: REMOVE_SIZE }}
           onClick={handleOnClickRemove}

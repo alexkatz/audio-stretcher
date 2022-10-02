@@ -16,4 +16,10 @@ function defineNextConfig(config) {
 export default defineNextConfig({
   reactStrictMode: true,
   swcMinify: true,
+  typescript: {
+    tsconfigPath: './tsconfig.json',
+  },
+  eslint: {
+    dirs: ['src'],
+  },
 });

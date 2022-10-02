@@ -1,15 +1,22 @@
 import create from 'zustand';
 import { AudioSession } from '../db';
 import { getAudioContext } from './getAudioContext';
+import { playerIsReady } from './playerIsReady';
 
 // TODO: https://github.com/olvb/phaze/
 
 export type InitializeParams = Pick<AudioSession, 'arrayBuffer' | 'source' | 'displayName'>;
 
+export type PlayerStatus = 'paused' | 'playing' | 'initializing' | 'uninitialized' | 'failed-to-initialize';
+
 export type Player = {
-  isPlaying: boolean;
-  status: 'ready' | 'initializing' | 'uninitialized' | 'failed-to-initialize';
-  displayName: string;
+  status: PlayerStatus;
+
+  displayName?: string;
+  leftChannelData?: Float32Array;
+  rightChannelData?: Float32Array;
+  monoChannelData?: Float32Array;
+  duration?: number;
   source?: string;
 
   initialize(params: InitializeParams): Promise<void>;
@@ -19,25 +26,29 @@ export type Player = {
   clear(): void;
 };
 
-const defaultValues: StripFunctions<Player> = {
+const defaultValues: Complete<StripFunctions<Player>> = {
   displayName: '',
-  isPlaying: false,
   status: 'uninitialized',
   source: undefined,
+  leftChannelData: undefined,
+  rightChannelData: undefined,
+  monoChannelData: undefined,
+  duration: undefined,
 };
 
 export const usePlayer = create<Player>((set, get) => {
   let audioContext: AudioContext;
-  let audioBuffer: AudioBuffer;
   let bufferSource: AudioBufferSourceNode | undefined;
+  let audioBuffer: AudioBuffer;
 
   return {
     ...defaultValues,
 
     play() {
-      if (get().status !== 'ready') return;
+      const { status } = get();
+      if (!playerIsReady(status) || status === 'playing') return;
 
-      set({ isPlaying: true });
+      set({ status: 'playing' });
 
       bufferSource = audioContext.createBufferSource();
       bufferSource.buffer = audioBuffer;
@@ -45,9 +56,10 @@ export const usePlayer = create<Player>((set, get) => {
       bufferSource.start();
     },
     pause() {
-      if (get().status !== 'ready') return;
+      const { status } = get();
+      if (!playerIsReady(status) || status === 'paused') return;
 
-      set({ isPlaying: false });
+      set({ status: 'paused' });
 
       bufferSource?.stop();
       bufferSource?.disconnect();
@@ -66,7 +78,21 @@ export const usePlayer = create<Player>((set, get) => {
         audioContext = getAudioContext();
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        set({ status: 'ready', displayName, source });
+        const leftChannelData = audioBuffer.getChannelData(0);
+        const rightChannelData = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : undefined;
+        const monoChannelData =
+          rightChannelData == null
+            ? leftChannelData
+            : leftChannelData.map((left, i) => (left + (rightChannelData[i] ?? left)) / 2);
+
+        set({
+          status: 'paused',
+          displayName,
+          source,
+          leftChannelData,
+          rightChannelData,
+          monoChannelData,
+        });
       } catch (error) {
         console.log(error);
         set({ status: 'failed-to-initialize' });
