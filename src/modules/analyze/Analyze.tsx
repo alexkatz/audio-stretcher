@@ -6,7 +6,7 @@ import { SourceDisplay } from './SourceDisplay';
 import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { IoIosArrowRoundBack } from 'react-icons/io';
 import useResizeObserver from 'use-resize-observer';
-import { Waveform } from './Waveform';
+import { TrackCanvas } from './TrackCanvas';
 import { playerIsReady } from '~/audio/playerIsReady';
 
 export const Analyze = () => {
@@ -18,7 +18,7 @@ export const Analyze = () => {
 
   const isPlaying = status === 'playing';
 
-  const { ref: canvasContainerRef, width = 0, height = 0 } = useResizeObserver();
+  const { ref: canvasContainerRef, width, height } = useResizeObserver();
 
   useInitializeAnalyze();
 
@@ -37,14 +37,14 @@ export const Analyze = () => {
 
   return (
     <div className='relative flex h-screen flex-col items-center'>
+      <div ref={canvasContainerRef} className='relative h-1/3 w-full'>
+        {width && height && <TrackCanvas width={width} height={height} />}
+      </div>
+
       <button className='absolute top-0 left-1' onClick={handleOnClickBack}>
         <IoIosArrowRoundBack className='text-slate-500 opacity-60' size={40} />
       </button>
       <SourceDisplay />
-
-      <div ref={canvasContainerRef} className='relative h-1/3 w-full'>
-        <Waveform width={width} height={height} />
-      </div>
 
       <span className='mt-60'>
         <PlayButton
