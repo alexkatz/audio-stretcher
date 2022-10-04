@@ -1,6 +1,6 @@
 import { usePlayer } from '~/audio/usePlayer';
 
-const CURSOR_WIDTH = 6;
+const CURSOR_WIDTH = 1;
 
 export class TrackPainter {
   private peaks: Map<number, number> = new Map();
@@ -76,8 +76,11 @@ export class TrackPainter {
   }
 
   paint() {
-    const { audioBuffer, startedPlayingAt, audioContext } = usePlayer.getState();
+    const { audioBuffer, startedPlayingAt, audioContext, hoverLocators, loopLocators } = usePlayer.getState();
+
     if (!audioBuffer || !audioContext) return;
+
+    // draw waveform
 
     if (!this.offscreenCanvasReady) {
       const helperContext = this.offscreenCanvas.getContext('2d');
@@ -112,11 +115,41 @@ export class TrackPainter {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.drawImage(this.offscreenCanvas, 0, 0);
 
+    // draw playback progress
+
     if (startedPlayingAt != null) {
-      const x = ((audioContext.currentTime - startedPlayingAt) / audioBuffer.duration) * this.canvas.width;
+      const timePlaying = audioContext.currentTime - startedPlayingAt;
+      const loopStart = audioBuffer.duration * (loopLocators?.startPercent ?? 0);
+      const loopEnd = loopLocators?.endPercent == null ? undefined : audioBuffer.duration * loopLocators.endPercent;
+      const loopDuration = loopEnd == null ? audioBuffer.duration : loopEnd - loopStart;
+      const cursorPercent = ((timePlaying % loopDuration) + loopStart) / audioBuffer.duration;
+      const x = cursorPercent * this.canvas.width;
       this.context.save();
-      this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      this.context.fillStyle = 'rgba(255, 255, 255, 0.8)';
       this.context.fillRect(x, 0, CURSOR_WIDTH, this.canvas.height);
+      this.context.restore();
+    }
+
+    // draw hover locators
+
+    if (hoverLocators) {
+      const { startPercent } = hoverLocators;
+      const x = startPercent * this.canvas.width;
+      this.context.save();
+      this.context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      this.context.fillRect(x, 0, CURSOR_WIDTH, this.canvas.height);
+      this.context.restore();
+    }
+
+    // draw loop locators
+
+    if (loopLocators) {
+      const { startPercent, endPercent } = loopLocators;
+      const startX = startPercent * this.canvas.width;
+      const endX = endPercent == null ? undefined : endPercent * this.canvas.width;
+      this.context.save();
+      this.context.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      this.context.fillRect(startX, 0, endX ? endX - startX : CURSOR_WIDTH, this.canvas.height);
       this.context.restore();
     }
   }

@@ -5,9 +5,8 @@ import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';
 import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { IoIosArrowRoundBack } from 'react-icons/io';
-import useResizeObserver from 'use-resize-observer';
-import { TrackCanvas } from './TrackCanvas';
 import { playerIsReady } from '~/audio/playerIsReady';
+import { Track } from './Track';
 
 export const Analyze = () => {
   const router = useRouter();
@@ -17,8 +16,6 @@ export const Analyze = () => {
   const pause = usePlayer(player => player.pause);
 
   const isPlaying = status === 'playing';
-
-  const { ref: canvasContainerRef, width, height } = useResizeObserver();
 
   useInitializeAnalyze();
 
@@ -32,18 +29,17 @@ export const Analyze = () => {
   }, [router]);
 
   if (!playerIsReady(status)) {
-    return <div>almost ready...</div>;
+    return null;
   }
 
   return (
     <div className='relative flex h-screen flex-col items-center'>
-      <div ref={canvasContainerRef} className='relative h-1/3 w-full'>
-        {width && height && <TrackCanvas width={width} height={height} />}
-      </div>
+      <Track className='relative h-1/2 w-full' />
 
       <button className='absolute top-0 left-1' onClick={handleOnClickBack}>
         <IoIosArrowRoundBack className='text-slate-500 opacity-60' size={40} />
       </button>
+
       <SourceDisplay />
 
       <span className='mt-60'>

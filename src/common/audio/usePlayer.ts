@@ -8,15 +8,18 @@ export type InitializeParams = Pick<AudioSession, 'arrayBuffer' | 'source' | 'di
 
 export type PlayerStatus = 'paused' | 'playing' | 'initializing' | 'uninitialized' | 'failed-to-initialize';
 
+export type LocatorType = 'loop' | 'hover';
+
 type Locators = {
   startPercent: number;
   endPercent?: number;
 };
 
+type PlayerLocators = { [K in LocatorType as `${K}Locators`]?: Locators };
+
 export type Player = {
   status: PlayerStatus;
 
-  loopLocators: Locators;
   displayName?: string;
   monoChannelData?: Float32Array;
   source?: string;
@@ -30,13 +33,19 @@ export type Player = {
   pause(): void;
   clear(): void;
 
-  updateLoopLocators(loopLocators: Locators): void;
-};
+  updateLocators(
+    type?: LocatorType,
+    locators?: Locators | ((currentLocators?: Locators) => Locators | undefined),
+  ): void;
+} & PlayerLocators;
 
 const defaultValues: Complete<StripFunctions<Player>> = {
   displayName: '',
   status: 'uninitialized',
-  loopLocators: { startPercent: 0 },
+
+  loopLocators: undefined,
+  hoverLocators: undefined,
+
   source: undefined,
   monoChannelData: undefined,
   audioBuffer: undefined,
@@ -51,13 +60,27 @@ export const usePlayer = create<Player>((set, get) => {
     ...defaultValues,
 
     play() {
-      const { status, audioBuffer, audioContext } = get();
-      if (!playerIsReady(status) || status === 'playing' || audioBuffer == null || audioContext == null) return;
+      const { status, audioBuffer, audioContext, loopLocators } = get();
+      if (audioBuffer == null || audioContext == null) return;
+
+      if (status === 'playing') {
+        bufferSource?.stop();
+        bufferSource?.disconnect();
+      }
 
       bufferSource = audioContext.createBufferSource();
       bufferSource.buffer = audioBuffer;
       bufferSource.connect(audioContext.destination);
-      bufferSource.start();
+
+      const loopStartTime = loopLocators ? loopLocators.startPercent * audioBuffer.duration : 0;
+      if (loopLocators?.endPercent != null) {
+        bufferSource.loop = true;
+        bufferSource.loopStart = loopStartTime;
+        bufferSource.loopEnd = loopLocators.endPercent * audioBuffer.duration;
+      }
+
+      bufferSource.start(0, loopStartTime);
+
       set({ status: 'playing', startedPlayingAt: audioContext.currentTime });
     },
     pause() {
@@ -76,10 +99,15 @@ export const usePlayer = create<Player>((set, get) => {
       set(defaultValues);
     },
 
-    updateLoopLocators(loopLocators) {
-      set({ loopLocators });
-    },
+    updateLocators(type = 'loop', locators) {
+      set(state => ({
+        [`${type}Locators`]: typeof locators === 'function' ? locators(state[`${type}Locators`]) : locators,
+        hoverLocators: type === 'loop' ? undefined : state.hoverLocators,
+      }));
 
+      const { status, play } = get();
+      if (status === 'playing' && type === 'loop') play();
+    },
     async initialize({ arrayBuffer, displayName, source }) {
       try {
         set({ status: 'initializing' });
