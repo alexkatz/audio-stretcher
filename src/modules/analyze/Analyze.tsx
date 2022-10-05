@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { KeyboardEvent, useCallback } from 'react';
+import { useCallback } from 'react';
 import { usePlayer } from '~/audio/usePlayer';
 import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';
@@ -7,6 +7,8 @@ import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { IoIosArrowRoundBack } from 'react-icons/io';
 import { playerIsReady } from '~/audio/playerIsReady';
 import { Track } from './Track';
+import { useKeydown } from './useKeyboard';
+import { useTrack } from './useTrack';
 
 export const Analyze = () => {
   const router = useRouter();
@@ -14,19 +16,31 @@ export const Analyze = () => {
   const status = usePlayer(player => player.status);
   const play = usePlayer(player => player.play);
   const pause = usePlayer(player => player.pause);
+  const draw = useTrack(track => track.draw);
 
   const isPlaying = status === 'playing';
 
   useInitializeAnalyze();
 
   const handleOnClickPlay = useCallback(() => {
-    if (isPlaying) pause();
-    else play();
-  }, [isPlaying, pause, play]);
+    if (isPlaying) {
+      pause();
+      draw();
+    } else {
+      play();
+    }
+  }, [draw, isPlaying, pause, play]);
 
   const handleOnClickBack = useCallback(() => {
     router.push('/');
   }, [router]);
+
+  useKeydown(
+    ({ key }) => {
+      if (key === ' ') handleOnClickPlay();
+    },
+    [handleOnClickPlay],
+  );
 
   if (!playerIsReady(status)) {
     return null;

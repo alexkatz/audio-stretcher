@@ -1,12 +1,12 @@
 import create from 'zustand';
 import { usePlayer } from '~/audio/usePlayer';
 
-const CURSOR_WIDTH = 1;
+const CURSOR_WIDTH = 4;
 const RES_FACTOR = 2;
 
 export type TrackState = {
-  offscreenCanvas: HTMLCanvasElement;
   canvasDomSize: { width?: number; height?: number };
+
   init(canvas: HTMLCanvasElement, samples: Float32Array): void;
   draw(): void;
   cleanup(): void;
@@ -18,11 +18,13 @@ export const useTrack = create<TrackState>((set, get) => {
 
   let offscreenCanvas!: HTMLCanvasElement;
   let offscreenContext!: CanvasRenderingContext2D;
+  let offscreenCanvasReady = false;
+
   let canvas!: HTMLCanvasElement;
   let context!: CanvasRenderingContext2D;
+
   let samples!: Float32Array;
   let pixelFactor!: number;
-  let offscreenCanvasReady = false;
   let observer!: ResizeObserver;
 
   const reset = (domWidth: number, domHeight: number) => {
@@ -94,7 +96,6 @@ export const useTrack = create<TrackState>((set, get) => {
 
   const drawWaveform = () => {
     if (!offscreenCanvasReady) {
-      console.log('drawing to offscreen canvas');
       offscreenContext.clearRect(0, 0, canvas.width, canvas.height);
 
       const gradient = offscreenContext.createLinearGradient(0, 0, 0, canvas.height);
@@ -148,6 +149,7 @@ export const useTrack = create<TrackState>((set, get) => {
 
     const { startPercent } = hoverLocators;
     const x = startPercent * canvas.width;
+
     context.save();
     context.fillStyle = 'rgba(255, 255, 255, 0.2)';
     context.fillRect(x, 0, CURSOR_WIDTH, canvas.height);
@@ -161,6 +163,7 @@ export const useTrack = create<TrackState>((set, get) => {
     const { startPercent, endPercent } = loopLocators;
     const startX = startPercent * canvas.width;
     const endX = endPercent == null ? undefined : endPercent * canvas.width;
+
     context.save();
     context.fillStyle = 'rgba(255, 255, 255, 0.4)';
     context.fillRect(startX, 0, endX ? endX - startX : CURSOR_WIDTH, canvas.height);
@@ -170,7 +173,6 @@ export const useTrack = create<TrackState>((set, get) => {
   const drawSequence = [drawWaveform, drawPlaybackProgress, drawHoverLocators, drawLoopLopcators];
 
   return {
-    offscreenCanvas,
     canvasDomSize: { width: canvas?.clientWidth, height: canvas?.clientHeight },
 
     init(c, s) {
@@ -179,17 +181,16 @@ export const useTrack = create<TrackState>((set, get) => {
       context = canvas.getContext('2d')!;
       offscreenCanvas = document.createElement('canvas');
       offscreenContext = offscreenCanvas.getContext('2d')!;
-      reset(canvas.clientWidth, canvas.clientHeight);
 
+      observer?.disconnect();
       observer = new ResizeObserver(([entry]) => {
-        if (
-          entry &&
-          entry.contentRect.width !== get().canvasDomSize.width &&
-          entry.contentRect.height !== get().canvasDomSize.height
-        ) {
-          reset(entry.contentRect.width, entry.contentRect.height);
+        const width = entry?.contentRect?.width;
+        const height = entry?.contentRect?.height;
+        if (width && height) {
+          reset(width, height);
         }
       });
+
       observer.observe(canvas);
     },
 
