@@ -100,14 +100,18 @@ export const usePlayer = create<Player>((set, get) => {
     },
 
     updateLocators(type = 'loop', locators) {
-      set(state => ({
-        [`${type}Locators`]: typeof locators === 'function' ? locators(state[`${type}Locators`]) : locators,
-        hoverLocators: type === 'loop' ? undefined : state.hoverLocators,
-      }));
+      set(state => {
+        const key = `${type}Locators` as const;
+        const nextLocators = typeof locators === 'function' ? locators(state[key]) : locators;
+        const updates = { [key]: nextLocators } as Partial<Player>;
+        if (type === 'loop') updates.hoverLocators = undefined;
+        return updates;
+      });
 
       const { status, play } = get();
       if (status === 'playing' && type === 'loop') play();
     },
+
     async initialize({ arrayBuffer, displayName, source }) {
       try {
         set({ status: 'initializing' });

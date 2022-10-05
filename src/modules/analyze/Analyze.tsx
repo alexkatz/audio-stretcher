@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { KeyboardEvent, useCallback } from 'react';
 import { usePlayer } from '~/audio/usePlayer';
 import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';

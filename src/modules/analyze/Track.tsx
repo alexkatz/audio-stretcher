@@ -1,10 +1,8 @@
-import { useState, useMemo, useRef, useCallback, useLayoutEffect, MouseEvent } from 'react';
-import useResizeObserver from 'use-resize-observer';
+import { useState, useRef, useCallback, useLayoutEffect, MouseEvent } from 'react';
 import { usePlayer } from '~/audio/usePlayer';
 import { c } from '~/utils/classnames';
-import { TrackPainter } from './TrackPainter';
+import { useTrack } from './useTrack';
 
-const RES_FACTOR = 2;
 const MIN_LOOP_PERCENT = 0.001;
 
 const isLoop = (start: number, end: number) => end - start > MIN_LOOP_PERCENT;
@@ -13,23 +11,24 @@ type Props = {
 };
 
 export const Track = ({ className }: Props) => {
-  const { ref: canvasContainerRef, width = 0, height = 0 } = useResizeObserver();
-
   const samples = usePlayer(state => state.monoChannelData!);
   const startedPlayingAt = usePlayer(state => state.startedPlayingAt);
   const updateLocators = usePlayer(state => state.updateLocators);
 
+  const init = useTrack(state => state.init);
+  const draw = useTrack(state => state.draw);
+  const { width = 300 } = useTrack(state => state.canvasDomSize);
+
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
-  const [canvasWidth, canvasHeight] = useMemo(
-    () => (width === 0 || width === 0 ? [] : [width * RES_FACTOR, height * RES_FACTOR]),
-    [width, height],
-  );
-  const canvasStyle = useMemo(() => ({ width, height }), [width, height]);
-  const trackPainter = useMemo(() => (!canvas ? undefined : new TrackPainter(canvas, samples)), [canvas, samples]);
+  useLayoutEffect(() => {
+    if (canvas) init(canvas, samples);
+    setTimeout(() => draw(), 1000);
+  }, [canvas, draw, init, samples]);
 
   const isMouseDownRef = useRef(false);
   const mouseDownPercentRef = useRef<number | undefined>();
+  const didSetLoopOnMouseDownRef = useRef(false);
 
   const handleOnMouseMove = useCallback(
     (e: MouseEvent<HTMLCanvasElement>) => {
@@ -54,65 +53,78 @@ export const Track = ({ className }: Props) => {
         updateLocators('hover', { startPercent: e.clientX / width });
       }
 
-      trackPainter?.paint();
+      draw();
     },
-    [trackPainter, updateLocators, width],
+    [draw, updateLocators, width],
   );
 
   const handleOnMouseDown = useCallback(
     (e: MouseEvent<HTMLCanvasElement>) => {
       const percent = e.clientX / width;
-      updateLocators('loop', { startPercent: percent });
+      updateLocators('loop', locators => {
+        if (!locators) didSetLoopOnMouseDownRef.current = true;
+        return { startPercent: percent };
+      });
+
       mouseDownPercentRef.current = percent;
       isMouseDownRef.current = true;
-      trackPainter?.paint();
+      draw();
     },
-    [trackPainter, updateLocators, width],
+    [draw, updateLocators, width],
   );
 
-  const handleOnMouseUp = useCallback(() => {
-    isMouseDownRef.current = false;
-    mouseDownPercentRef.current = undefined;
-  }, []);
+  const handleOnMouseUp = useCallback(
+    (e: MouseEvent<HTMLCanvasElement>) => {
+      const percent = e.clientX / width;
+      const mouseDownPercent = mouseDownPercentRef.current;
+      if (
+        mouseDownPercent != null &&
+        !didSetLoopOnMouseDownRef.current &&
+        Math.abs(mouseDownPercent - percent) < MIN_LOOP_PERCENT
+      ) {
+        updateLocators('loop', undefined);
+        draw();
+      }
+
+      isMouseDownRef.current = false;
+      didSetLoopOnMouseDownRef.current = false;
+      mouseDownPercentRef.current = undefined;
+    },
+    [draw, updateLocators, width],
+  );
 
   const handleOnMouseLeave = useCallback(() => {
     updateLocators('hover', undefined);
-    trackPainter?.paint();
-  }, [trackPainter, updateLocators]);
+    draw();
+  }, [draw, updateLocators]);
 
   useLayoutEffect(() => {
     let shouldUpdate = true;
 
     const update = () => {
       if (!shouldUpdate) return;
-      trackPainter?.paint();
+      draw();
       requestAnimationFrame(update);
     };
 
     if (startedPlayingAt != null) {
       requestAnimationFrame(update);
-    } else {
-      trackPainter?.paint();
     }
     return () => {
       shouldUpdate = false;
     };
-  }, [trackPainter, startedPlayingAt]);
+  }, [startedPlayingAt, draw]);
+
   return (
-    <div ref={canvasContainerRef} className={c('cursor-text', className)}>
-      {canvasWidth && canvasHeight && (
-        <canvas
-          width={canvasWidth}
-          height={canvasHeight}
-          style={canvasStyle}
-          ref={setCanvas}
-          className={className}
-          onMouseMove={handleOnMouseMove}
-          onMouseLeave={handleOnMouseLeave}
-          onMouseDown={handleOnMouseDown}
-          onMouseUp={handleOnMouseUp}
-        />
-      )}
+    <div className={c('relative cursor-text', className)}>
+      <canvas
+        className='h-full w-full'
+        ref={setCanvas}
+        onMouseMove={handleOnMouseMove}
+        onMouseLeave={handleOnMouseLeave}
+        onMouseDown={handleOnMouseDown}
+        onMouseUp={handleOnMouseUp}
+      />
     </div>
   );
 };

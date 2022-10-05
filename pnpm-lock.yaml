@@ -29,7 +29,6 @@ specifiers:
   react-icons: ^4.4.0
   tailwindcss: ^3.1.6
   typescript: 4.7.4
-  use-resize-observer: ^9.0.2
   ytdl-core: ^4.11.2
   zod: ^3.19.1
   zustand: ^4.1.1
@@ -48,7 +47,6 @@ dependencies:
   react-dom: 18.2.0_react@18.2.0
   react-dropzone: 14.2.2_react@18.2.0
   react-icons: 4.4.0_react@18.2.0
-  use-resize-observer: 9.0.2_biqbaboplfbrettd7655fr4n2y
   ytdl-core: 4.11.2
   zod: 3.19.1
   zustand: 4.1.1_react@18.2.0
@@ -135,10 +133,6 @@ packages:
   /@humanwhocodes/object-schema/1.2.1:
     resolution: {integrity: sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==}
     dev: true
-
-  /@juggle/resize-observer/3.4.0:
-    resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
-    dev: false
 
   /@motionone/animation/10.14.0:
     resolution: {integrity: sha512-h+1sdyBP8vbxEBW5gPFDnj+m2DCqdlAuf2g6Iafb1lcMnqjsRXWlPw1AXgvUMXmreyhqmPbJqoNfIKdytampRQ==}
@@ -2570,17 +2564,6 @@ packages:
     dependencies:
       punycode: 2.1.1
     dev: true
-
-  /use-resize-observer/9.0.2_biqbaboplfbrettd7655fr4n2y:
-    resolution: {integrity: sha512-JOzsmF3/IDmtjG7OE5qXOP69LEpBpwhpLSiT1XgSr+uFRX0ftJHQnDaP7Xq+uhbljLYkJt67sqsbnyXBjiY8ig==}
-    peerDependencies:
-      react: 16.8.0 - 18
-      react-dom: 16.8.0 - 18
-    dependencies:
-      '@juggle/resize-observer': 3.4.0
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-    dev: false
 
   /use-sync-external-store/1.2.0_react@18.2.0:
     resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}
