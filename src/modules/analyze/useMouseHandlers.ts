@@ -11,7 +11,6 @@ type MouseState = {
 };
 
 const getShiftLocators = (percent: number, locators: Locators) => {
-  debugger;
   const middlePercent = locators.endPercent ? (locators.startPercent + locators.endPercent) / 2 : locators.startPercent;
 
   if (percent < middlePercent) {
