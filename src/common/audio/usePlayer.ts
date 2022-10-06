@@ -10,7 +10,7 @@ export type PlayerStatus = 'paused' | 'playing' | 'initializing' | 'uninitialize
 
 export type LocatorType = 'loop' | 'hover';
 
-type Locators = {
+export type Locators = {
   startPercent: number;
   endPercent?: number;
 };

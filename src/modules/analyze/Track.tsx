@@ -3,7 +3,7 @@ import { usePlayer } from '~/audio/usePlayer';
 import { c } from '~/utils/classnames';
 import { useAnimatePlayback } from './useAnimatePlayback';
 import { useTrack } from './useTrack';
-import { useTrackMouseHandlers } from './useTrackMouseHandlers';
+import { useMouseHandlers } from './useMouseHandlers';
 
 type Props = {
   className?: string;
@@ -20,7 +20,7 @@ export const Track = ({ className }: Props) => {
 
   useAnimatePlayback();
 
-  const { handleOnMouseDown, handleOnMouseLeave, handleOnMouseMove, handleOnMouseUp } = useTrackMouseHandlers();
+  const { handleOnMouseDown, handleOnMouseLeave, handleOnMouseMove, handleOnMouseUp } = useMouseHandlers();
 
   return (
     <div className={c('relative cursor-text', className)}>
