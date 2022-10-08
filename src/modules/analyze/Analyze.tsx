@@ -1,35 +1,31 @@
 import { useRouter } from 'next/router';
 import { useCallback } from 'react';
-import { usePlayer } from '~/audio/usePlayer';
 import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';
 import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { IoIosArrowRoundBack } from 'react-icons/io';
-import { playerIsReady } from '~/audio/playerIsReady';
 import { Track } from './Track';
 import { useKeydown } from './useKeyboard';
-import { useTrack } from './useTrack';
+import { useTrack } from '../../common/audio/useTrack';
 
 export const Analyze = () => {
   const router = useRouter();
-
-  const status = usePlayer(player => player.status);
-  const play = usePlayer(player => player.play);
-  const pause = usePlayer(player => player.pause);
+  const status = useTrack(track => track.status);
+  const isPlaying = useTrack(track => track.isPlaying);
   const draw = useTrack(track => track.draw);
-
-  const isPlaying = status === 'playing';
 
   useInitializeAnalyze();
 
   const handleOnClickPlay = useCallback(() => {
+    const { play, pause } = useTrack.getState();
+
     if (isPlaying) {
       pause();
       draw();
     } else {
       play();
     }
-  }, [draw, isPlaying, pause, play]);
+  }, [draw, isPlaying]);
 
   const handleOnClickBack = useCallback(() => {
     router.push('/');
@@ -37,12 +33,19 @@ export const Analyze = () => {
 
   useKeydown(
     ({ key }) => {
-      if (key === ' ') handleOnClickPlay();
+      if (key === ' ') {
+        handleOnClickPlay();
+      } else if (key === 'z') {
+        const { loopLocators, zoom } = useTrack.getState();
+        if (!loopLocators || loopLocators.startPercent === 0 || loopLocators.startPercent === 1) return;
+        zoom(loopLocators);
+        draw();
+      }
     },
-    [handleOnClickPlay],
+    [draw, handleOnClickPlay],
   );
 
-  if (!playerIsReady(status)) {
+  if (status !== 'initialized') {
     return null;
   }
 

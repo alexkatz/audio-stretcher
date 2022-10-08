@@ -1,13 +1,13 @@
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { InitializeParams, usePlayer } from '~/audio/usePlayer';
 import { useStore } from '~/audio/useStore';
+import { InitializeParams, useTrack } from '../../common/audio/useTrack';
 
 export const useFileDrop = () => {
   const router = useRouter();
   const createSession = useStore(store => store.createSession);
-  const initializePlayer = usePlayer(player => player.initialize);
+  const initAudio = useTrack(track => track.initAudio);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [droppedFileName, setDroppedFileName] = useState('');
 
@@ -28,7 +28,7 @@ export const useFileDrop = () => {
         };
 
         await createSession(params);
-        await initializePlayer(params);
+        await initAudio(params);
 
         router.push('/analyze', `/analyze?source=${encodeURIComponent(params.source)}`);
       } catch (error) {

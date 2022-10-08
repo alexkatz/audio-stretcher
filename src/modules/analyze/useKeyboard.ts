@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-type Key = ' ' | 'shift';
+type Key = ' ' | 'shift' | 'z';
 
 type UseKeyboardEvent = globalThis.KeyboardEvent & { key: Key };
 

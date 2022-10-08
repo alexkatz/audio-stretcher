@@ -1,6 +1,5 @@
 import { useState, useCallback, MouseEvent } from 'react';
-import { Locators, usePlayer } from '~/audio/usePlayer';
-import { useTrack } from './useTrack';
+import { Locators, useTrack } from '../../common/audio/useTrack';
 
 const MIN_LOOP_PERCENT = 0.001;
 
@@ -10,7 +9,7 @@ type MouseState = {
   didSetLoopOnMouseDown: boolean;
 };
 
-const getShiftLocators = (percent: number, locators: Locators) => {
+const getShiftLocators = (percent: number, locators: Locators): Locators => {
   const middlePercent = locators.endPercent ? (locators.startPercent + locators.endPercent) / 2 : locators.startPercent;
 
   if (percent < middlePercent) {
@@ -25,7 +24,7 @@ const arePercentsEqual = (a: number, b: number) => Math.abs(a - b) < MIN_LOOP_PE
 export const useMouseHandlers = () => {
   const draw = useTrack(track => track.draw);
   const { width = 1 } = useTrack(track => track.canvasDomSize);
-  const updateLocators = usePlayer(player => player.updateLocators);
+  const updateLocators = useTrack(track => track.updateLocators);
 
   const [mouseState, setMouseState] = useState<MouseState>({
     didSetLoopOnMouseDown: false,
@@ -67,9 +66,8 @@ export const useMouseHandlers = () => {
   const handleOnMouseDown = useCallback(
     (e: MouseEvent<HTMLCanvasElement>) => {
       const { shiftKey, clientX } = e;
+      const { loopLocators } = useTrack.getState();
       const percent = clientX / width;
-
-      const loopLocators = usePlayer.getState().loopLocators;
 
       setMouseState({
         didSetLoopOnMouseDown: !loopLocators || !arePercentsEqual(loopLocators.startPercent, percent),

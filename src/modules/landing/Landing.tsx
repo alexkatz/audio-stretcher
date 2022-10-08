@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { usePlayer } from '~/audio/usePlayer';
 import { useStore } from '~/audio/useStore';
+import { useTrack } from '~/audio/useTrack';
 import { Busy } from '~/components/Busy';
 import { RecentSessions } from './RecentSessions';
 import { useFileDrop } from './useFileDrop';
@@ -22,15 +22,16 @@ export const Landing = () => {
   } = useFileDrop();
 
   useEffect(() => {
+    const { status, clear } = useTrack.getState();
+
     inputRef.current?.focus();
 
-    const failedToInitialize = usePlayer.getState().status === 'failed-to-initialize';
-    if (failedToInitialize) {
+    if (status === 'failed-to-initialize') {
       // TODO: toast or something
     }
 
     useStore.setState({ downloadProgress: 0, youtubeUrl: '' });
-    usePlayer.getState().clear();
+    clear();
   }, []);
 
   const handleOnClickMain = useCallback(() => {

@@ -1,8 +1,7 @@
 import { useState, useLayoutEffect } from 'react';
-import { usePlayer } from '~/audio/usePlayer';
 import { c } from '~/utils/classnames';
 import { useAnimatePlayback } from './useAnimatePlayback';
-import { useTrack } from './useTrack';
+import { useTrack } from '../../common/audio/useTrack';
 import { useMouseHandlers } from './useMouseHandlers';
 
 type Props = {
@@ -10,13 +9,13 @@ type Props = {
 };
 
 export const Track = ({ className }: Props) => {
-  const samples = usePlayer(state => state.monoChannelData!);
-  const init = useTrack(state => state.init);
+  const samples = useTrack(track => track.monoChannelData!);
+  const initCanvas = useTrack(track => track.initCanvas);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
   useLayoutEffect(() => {
-    if (canvas) init(canvas, samples);
-  }, [canvas, init, samples]);
+    if (canvas) initCanvas(canvas, samples);
+  }, [canvas, initCanvas, samples]);
 
   useAnimatePlayback();
 

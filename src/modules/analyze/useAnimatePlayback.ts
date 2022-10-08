@@ -1,9 +1,8 @@
 import { useLayoutEffect } from 'react';
-import { usePlayer } from '~/audio/usePlayer';
-import { useTrack } from './useTrack';
+import { useTrack } from '../../common/audio/useTrack';
 
 export const useAnimatePlayback = () => {
-  const startedPlayingAt = usePlayer(player => player.startedPlayingAt);
+  const startedPlayingAt = useTrack(track => track.startedPlayingAt);
   const draw = useTrack(track => track.draw);
 
   useLayoutEffect(() => {

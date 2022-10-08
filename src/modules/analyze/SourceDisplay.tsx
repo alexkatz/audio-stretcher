@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { usePlayer } from '~/audio/usePlayer';
+import { useTrack } from '~/audio/useTrack';
 import { c } from '~/utils/classnames';
 import { getIsValidYoutubeUrl } from '~/utils/validateYoutubeUrl';
 
@@ -8,8 +8,8 @@ type Props = {
 };
 
 export const SourceDisplay = ({ className }: Props) => {
-  const displayName = usePlayer(player => player.displayName);
-  const source = usePlayer(player => player.source);
+  const displayName = useTrack(track => track.displayName);
+  const source = useTrack(track => track.source);
   const sourceIsUrl = useMemo(() => source != null && getIsValidYoutubeUrl(source), [source]);
   return (
     <div
