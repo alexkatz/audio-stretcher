@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
-type Key = ' ' | 'shift' | 'z';
+type Key = 'Space' | 'ShiftLeft' | 'ShiftRight' | 'KeyZ' | 'Escape';
 
-type UseKeyboardEvent = globalThis.KeyboardEvent & { key: Key };
+type UseKeyboardEvent = globalThis.KeyboardEvent & { code: Key };
 
 export const useKeydown = (callback: (e: UseKeyboardEvent) => void, deps: readonly any[]) => {
   useEffect(() => {

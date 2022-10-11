@@ -5,3 +5,5 @@ type StripFunctions<T extends Record<unknown, unknown>> = {
 type Complete<T> = {
   [K in keyof Required<T>]: Pick<T, K> extends Required<Pick<T, K>> ? T[K] : T[K] | undefined;
 };
+
+type Never<T> = { [K in keyof T]?: never };

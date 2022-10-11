@@ -12,37 +12,43 @@ export const Analyze = () => {
   const router = useRouter();
   const status = useTrack(track => track.status);
   const isPlaying = useTrack(track => track.isPlaying);
-  const draw = useTrack(track => track.draw);
 
   useInitializeAnalyze();
 
   const handleOnClickPlay = useCallback(() => {
-    const { play, pause } = useTrack.getState();
-
+    const { play, pause, draw } = useTrack.getState();
     if (isPlaying) {
       pause();
       draw();
     } else {
       play();
     }
-  }, [draw, isPlaying]);
+  }, [isPlaying]);
 
   const handleOnClickBack = useCallback(() => {
     router.push('/');
   }, [router]);
 
   useKeydown(
-    ({ key }) => {
-      if (key === ' ') {
+    ({ code, shiftKey }) => {
+      const { draw, loopLocators, zoom, updateLocators, zoomLocators } = useTrack.getState();
+
+      if (code === 'Space') {
         handleOnClickPlay();
-      } else if (key === 'z') {
-        const { loopLocators, zoom } = useTrack.getState();
-        if (!loopLocators || loopLocators.startPercent === 0 || loopLocators.startPercent === 1) return;
+      } else if (!shiftKey && code === 'KeyZ') {
+        if (!loopLocators || loopLocators.start === 0 || loopLocators.start === 1) return;
         zoom(loopLocators);
+        draw();
+      } else if (shiftKey && code === 'KeyZ') {
+        zoom({ start: 0, end: 1, reset: true });
+        updateLocators('loop', zoomLocators);
+        draw();
+      } else if (code === 'Escape') {
+        updateLocators('loop', undefined);
         draw();
       }
     },
-    [draw, handleOnClickPlay],
+    [handleOnClickPlay],
   );
 
   if (status !== 'initialized') {

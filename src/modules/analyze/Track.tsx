@@ -9,13 +9,14 @@ type Props = {
 };
 
 export const Track = ({ className }: Props) => {
-  const samples = useTrack(track => track.monoChannelData!);
+  const samples = useTrack(track => track.samples!);
+  const status = useTrack(track => track.status);
   const initCanvas = useTrack(track => track.initCanvas);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
   useLayoutEffect(() => {
-    if (canvas) initCanvas(canvas, samples);
-  }, [canvas, initCanvas, samples]);
+    if (canvas && status === 'initialized') initCanvas(canvas);
+  }, [canvas, initCanvas, samples, status]);
 
   useAnimatePlayback();
 

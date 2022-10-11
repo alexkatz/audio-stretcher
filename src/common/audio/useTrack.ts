@@ -3,7 +3,7 @@ import create from 'zustand';
 
 // TODO: https://github.com/olvb/phaze/
 
-const CURSOR_WIDTH = 4;
+const CURSOR_WIDTH = 2;
 const RES_FACTOR = 2;
 
 export type InitializeParams = Pick<AudioSession, 'arrayBuffer' | 'source' | 'displayName'>;
@@ -13,22 +13,26 @@ type TrackStatus = 'uninitialized' | 'initialized' | 'initializing' | 'failed-to
 export type LocatorType = 'loop' | 'hover' | 'zoom';
 
 export type Locators = {
-  startPercent: number;
-  endPercent?: number;
+  start: number;
+  end?: number;
 };
 
 type TrackLocators = { [K in LocatorType as `${K}Locators`]?: Locators };
 
-type ZoomOptions =
-  | (Locators & { factor?: never; focalPoint?: never })
-  | ({ factor: number; focalPoint: number } & { startPercent?: never; endPercent?: never });
+type UpdateLocatorOptions = {
+  restartPlayback?: boolean;
+};
+
+type ZoomLocatorOptions = Locators & { reset?: boolean };
+type ZoomFactorOptions = { factor: number; focalPoint: number };
+type ZoomOptions = (ZoomLocatorOptions & Never<ZoomFactorOptions>) | (ZoomFactorOptions & Never<ZoomLocatorOptions>);
 
 export type Track = {
   status: TrackStatus;
   isPlaying: boolean;
 
   displayName?: string;
-  monoChannelData?: Float32Array;
+  samples: Float32Array;
   source?: string;
   audioBuffer?: AudioBuffer;
   startedPlayingAt?: number;
@@ -39,7 +43,7 @@ export type Track = {
   canvasDomSize: { width?: number; height?: number };
 
   initAudio(params: InitializeParams): Promise<TrackStatus>;
-  initCanvas(canvas: HTMLCanvasElement, samples: Float32Array): void;
+  initCanvas(canvas: HTMLCanvasElement): void;
 
   play(): void;
   pause(): void;
@@ -50,6 +54,7 @@ export type Track = {
   updateLocators(
     type?: LocatorType,
     locators?: Locators | ((currentLocators?: Locators) => Locators | undefined),
+    options?: UpdateLocatorOptions,
   ): void;
 } & TrackLocators;
 
@@ -64,7 +69,7 @@ const defaultValues: Complete<StripFunctions<Track>> = {
   zoomFactor: 1,
 
   source: undefined,
-  monoChannelData: undefined,
+  samples: new Float32Array(),
   audioBuffer: undefined,
   startedPlayingAt: undefined,
   audioContext: undefined,
@@ -73,48 +78,44 @@ const defaultValues: Complete<StripFunctions<Track>> = {
 
 export const useTrack = create<Track>((set, get) => {
   const peaks = new Map<number, number>();
-  const averages = new Map<number, number>();
 
   let bufferSource: AudioBufferSourceNode | undefined;
 
+  let canvas!: HTMLCanvasElement;
+  let context!: CanvasRenderingContext2D;
   let offscreenCanvas!: HTMLCanvasElement;
   let offscreenContext!: CanvasRenderingContext2D;
   let offscreenCanvasReady = false;
 
-  let canvas!: HTMLCanvasElement;
-  let context!: CanvasRenderingContext2D;
+  let samplesPerPixel!: number;
 
-  let samples!: Float32Array;
-  let pixelFactor!: number;
   let observer!: ResizeObserver;
 
-  const reset = (domWidth: number, domHeight: number) => {
-    canvas.width = domWidth * RES_FACTOR;
-    canvas.height = domHeight * RES_FACTOR;
-    pixelFactor = samples.length / canvas.width;
-    offscreenCanvas.width = canvas.width;
-    offscreenCanvas.height = canvas.height;
-    offscreenCanvasReady = false;
+  const getZoomAdjustedPlayTimes = (): [number, number] => {
+    const { audioBuffer, loopLocators, zoomLocators, zoomFactor } = get();
+    if (!audioBuffer) throw new Error('audioBuffer is not defined');
 
-    peaks.clear();
-    averages.clear();
+    const duration = audioBuffer.duration;
+    const zoomStartTime = (zoomLocators?.start ?? 0) * duration;
+    const loopStartTime = zoomStartTime + ((loopLocators?.start ?? 0) / zoomFactor) * duration;
+    const loopEndTime = zoomStartTime + ((loopLocators?.end ?? 1) / zoomFactor) * duration;
 
-    set({ canvasDomSize: { width: domWidth, height: domHeight } });
-    get().draw();
+    return [loopStartTime, loopEndTime];
   };
 
-  const findLocalPeak = (x: number, isPositive: boolean) => {
+  const findLocalPeak = (x: number, isPositive: boolean, zoomOffset: number) => {
     const key = isPositive ? x : -x;
 
     if (peaks.has(key)) {
       return peaks.get(key)!;
     }
 
-    const from = Math.floor(x * pixelFactor);
-    const to = Math.floor((x + 1) * pixelFactor);
+    const { samples } = get();
+    const bucketStart = Math.ceil(x * samplesPerPixel + zoomOffset);
+    const bucketEnd = Math.ceil(bucketStart + samplesPerPixel);
 
     let peak = 0;
-    for (let i = from; i < to; i += 1) {
+    for (let i = bucketStart; i < bucketEnd; i += 1) {
       if (i >= samples.length) break;
       const sample = samples[i]!;
       if ((isPositive && sample > peak) || (!isPositive && sample < peak)) {
@@ -127,36 +128,10 @@ export const useTrack = create<Track>((set, get) => {
     return peak;
   };
 
-  const findLocalAverage = (x: number, isPositive: boolean) => {
-    const key = isPositive ? x : -x;
-
-    if (averages.has(key)) {
-      return averages.get(key)!;
-    }
-
-    const from = Math.floor(x * pixelFactor);
-    const to = Math.floor((x + 1) * pixelFactor);
-
-    let sum = 0;
-    let includedCount = 0;
-
-    for (let i = from; i < to; i += 1) {
-      const sample = samples[i]!;
-      if ((isPositive && sample > 0) || (!isPositive && sample < 0)) {
-        sum += sample;
-        includedCount += 1;
-      }
-    }
-
-    const average = sum / includedCount;
-
-    averages.set(key, average);
-
-    return average;
-  };
-
   const drawWaveform = () => {
     if (!offscreenCanvasReady) {
+      const { samples, zoomLocators } = get();
+
       offscreenContext.clearRect(0, 0, canvas.width, canvas.height);
 
       const gradient = offscreenContext.createLinearGradient(0, 0, 0, canvas.height);
@@ -172,10 +147,12 @@ export const useTrack = create<Track>((set, get) => {
       offscreenContext.beginPath();
       offscreenContext.moveTo(0, centerY);
 
+      const zoomOffset = samples.length * (zoomLocators?.start ?? 0);
+
       for (let i = 0; i < canvas.width * 2; i += 1) {
         const isPositive = i < canvas.width;
         const x = isPositive ? i : canvas.width * 2 - i;
-        const peak = findLocalPeak(x, isPositive);
+        const peak = findLocalPeak(x, isPositive, zoomOffset);
         offscreenContext.lineTo(x, centerY - centerY * peak);
       }
 
@@ -188,19 +165,27 @@ export const useTrack = create<Track>((set, get) => {
   };
 
   const drawPlaybackProgress = () => {
-    const { startedPlayingAt, audioContext, loopLocators, audioBuffer } = get();
+    const { startedPlayingAt, audioContext, loopLocators, audioBuffer, zoomFactor } = get();
     if (startedPlayingAt == null || audioContext == null || audioBuffer == null) return;
 
+    const [startTime, endTime] = getZoomAdjustedPlayTimes();
+
+    const duration = audioBuffer.duration;
+    const zoomDuration = duration / zoomFactor;
+    const loopDuration = endTime - startTime;
+
+    const loopLocatorStart = loopLocators?.start ?? 0;
+    const loopOffsetTime = loopLocatorStart * zoomDuration;
+
     const timePlaying = audioContext.currentTime - startedPlayingAt;
-    const loopStart = audioBuffer.duration * (loopLocators?.startPercent ?? 0);
-    const loopEnd = loopLocators?.endPercent == null ? undefined : audioBuffer.duration * loopLocators.endPercent;
-    const loopDuration = loopEnd == null ? audioBuffer.duration : loopEnd - loopStart;
-    const cursorPercent = ((timePlaying % loopDuration) + loopStart) / audioBuffer.duration;
-    const x = cursorPercent * canvas.width;
+    const cursorTime = (timePlaying % loopDuration) + loopOffsetTime;
+    const cursor = cursorTime / zoomDuration;
+
+    const x = cursor * canvas.width;
 
     context.save();
     context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    context.fillRect(x, 0, CURSOR_WIDTH, canvas.height);
+    context.fillRect(x - CURSOR_WIDTH, 0, CURSOR_WIDTH, canvas.height);
     context.restore();
   };
 
@@ -208,8 +193,8 @@ export const useTrack = create<Track>((set, get) => {
     const { hoverLocators } = get();
     if (!hoverLocators) return;
 
-    const { startPercent } = hoverLocators;
-    const x = startPercent * canvas.width;
+    const { start } = hoverLocators;
+    const x = start * canvas.width;
 
     context.save();
     context.fillStyle = 'rgba(255, 255, 255, 0.2)';
@@ -221,9 +206,9 @@ export const useTrack = create<Track>((set, get) => {
     const { loopLocators } = get();
     if (!loopLocators) return;
 
-    const { startPercent, endPercent } = loopLocators;
-    const startX = startPercent * canvas.width;
-    const endX = endPercent == null ? undefined : endPercent * canvas.width;
+    const { start, end } = loopLocators;
+    const startX = start * canvas.width;
+    const endX = end == null ? undefined : end * canvas.width;
 
     context.save();
     context.fillStyle = 'rgba(255, 255, 255, 0.4)';
@@ -237,9 +222,8 @@ export const useTrack = create<Track>((set, get) => {
     ...defaultValues,
     canvasDomSize: { width: canvas?.clientWidth, height: canvas?.clientHeight },
 
-    initCanvas(c, s) {
+    initCanvas(c) {
       canvas = c;
-      samples = s;
       context = canvas.getContext('2d')!;
       offscreenCanvas = document.createElement('canvas');
       offscreenContext = offscreenCanvas.getContext('2d')!;
@@ -248,8 +232,21 @@ export const useTrack = create<Track>((set, get) => {
       observer = new ResizeObserver(([entry]) => {
         const width = entry?.contentRect?.width;
         const height = entry?.contentRect?.height;
+        const { draw, samples, zoomFactor } = get();
+
         if (width && height) {
-          reset(width, height);
+          canvas.width = width * RES_FACTOR;
+          canvas.height = height * RES_FACTOR;
+          samplesPerPixel = (samples.length * (1 / zoomFactor)) / canvas.width;
+
+          offscreenCanvas.width = canvas.width;
+          offscreenCanvas.height = canvas.height;
+          offscreenCanvasReady = false;
+
+          peaks.clear();
+
+          set({ canvasDomSize: { width: width, height: height } });
+          draw();
         }
       });
 
@@ -261,25 +258,22 @@ export const useTrack = create<Track>((set, get) => {
     },
 
     play() {
-      const { isPlaying, audioBuffer, audioContext, loopLocators } = get();
+      const { isPlaying, audioBuffer, audioContext } = get();
       if (audioBuffer == null || audioContext == null) return;
+
       if (isPlaying) {
         bufferSource?.stop();
         bufferSource?.disconnect();
       }
 
+      const [startTime, endTime] = getZoomAdjustedPlayTimes();
       bufferSource = audioContext.createBufferSource();
+      bufferSource.loop = true;
       bufferSource.buffer = audioBuffer;
+      bufferSource.loopStart = startTime;
+      bufferSource.loopEnd = endTime;
       bufferSource.connect(audioContext.destination);
-
-      const loopStartTime = loopLocators ? loopLocators.startPercent * audioBuffer.duration : 0;
-      if (loopLocators?.endPercent != null) {
-        bufferSource.loop = true;
-        bufferSource.loopStart = loopStartTime;
-        bufferSource.loopEnd = loopLocators.endPercent * audioBuffer.duration;
-      }
-
-      bufferSource.start(0, loopStartTime);
+      bufferSource.start(0, startTime);
 
       set({ isPlaying: true, startedPlayingAt: audioContext.currentTime });
     },
@@ -298,42 +292,53 @@ export const useTrack = create<Track>((set, get) => {
     clear() {
       const { pause } = get();
       pause();
-      observer.disconnect();
+      observer?.disconnect();
       set(defaultValues);
     },
 
-    updateLocators(type = 'loop', locators) {
+    updateLocators(type = 'loop', locators, options = {}) {
       set(state => {
         const key = `${type}Locators` as const;
         const nextLocators = typeof locators === 'function' ? locators(state[key]) : locators;
         const updates = { [key]: nextLocators } as Partial<Track>;
-        if (type === 'loop') updates.hoverLocators = undefined;
+        if (type === 'loop' && locators != null) updates.hoverLocators = undefined;
         return updates;
       });
 
       const { isPlaying, play } = get();
-      if (isPlaying && type === 'loop') play();
+      if (options.restartPlayback && isPlaying && type === 'loop') play();
     },
 
-    zoom({ factor, focalPoint, startPercent, endPercent = 1 }) {
-      offscreenCanvasReady = false;
-      peaks.clear();
-      averages.clear();
+    zoom({ factor, focalPoint, start, end = 1, reset }) {
+      const { samples, zoomFactor, zoomLocators } = get();
 
-      let zoomedPercent = 1;
-      if (factor && focalPoint) {
-        zoomedPercent = 1 / factor;
-        const zoomDiff = 1 - zoomedPercent;
-        const startPercent = focalPoint * zoomDiff;
-        const endPercent = startPercent + zoomedPercent;
-        set({ zoomLocators: { startPercent, endPercent }, zoomFactor: factor });
-      } else if (startPercent != null) {
-        zoomedPercent = endPercent - startPercent;
-        const zoomFactor = 1 / zoomedPercent;
-        set({ zoomLocators: { startPercent, endPercent }, zoomFactor, loopLocators: undefined });
+      peaks.clear();
+      offscreenCanvasReady = false;
+
+      let zoomRatio: number;
+      if (factor != null && focalPoint != null) {
+        zoomRatio = 1 / factor;
+        const zoomDiff = 1 - zoomRatio;
+        const start = focalPoint * zoomDiff;
+        const end = start + zoomRatio;
+        set({ zoomLocators: { start, end }, zoomFactor: factor });
+      } else if (reset) {
+        zoomRatio = 1;
+        set({ zoomLocators: undefined, zoomFactor: 1 });
+      } else {
+        const trueStart = (zoomLocators?.start ?? 0) + start / zoomFactor;
+        const trueEnd = (zoomLocators?.start ?? 0) + end / zoomFactor;
+        zoomRatio = trueEnd - trueStart;
+        const factor = 1 / zoomRatio;
+
+        set({
+          zoomLocators: zoomRatio === 1 ? undefined : { start: trueStart, end: trueEnd },
+          zoomFactor: factor,
+          loopLocators: undefined,
+        });
       }
 
-      pixelFactor = (samples.length * zoomedPercent) / canvas.width;
+      samplesPerPixel = (samples.length * zoomRatio) / canvas.width;
     },
 
     async initAudio({ arrayBuffer, displayName, source }) {
@@ -350,7 +355,7 @@ export const useTrack = create<Track>((set, get) => {
         const leftChannelData = audioBuffer.getChannelData(0);
         const rightChannelData = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : undefined;
 
-        const monoChannelData =
+        const samples =
           rightChannelData == null
             ? leftChannelData
             : leftChannelData.map((left, i) => (left + (rightChannelData[i] ?? left)) / 2);
@@ -363,7 +368,7 @@ export const useTrack = create<Track>((set, get) => {
           source,
           audioBuffer,
           audioContext,
-          monoChannelData,
+          samples,
         });
 
         return status;
@@ -379,15 +384,14 @@ export const useTrack = create<Track>((set, get) => {
 });
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('connecting to devtools...');
   const connection = (window as any)?.__REDUX_DEVTOOLS_EXTENSION__?.connect?.({
     name: 'useTrack',
+    instanceId: 1,
   });
 
   connection?.init(useTrack.getState());
   useTrack.subscribe(state => {
-    connection.send(
-      'update',
-      !state.monoChannelData ? state : { ...state, monoChannelData: state.monoChannelData.byteLength },
-    );
+    connection.send('update', !state.samples ? state : { ...state, samples: state.samples.byteLength });
   });
 }

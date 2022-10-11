@@ -10,13 +10,13 @@ type MouseState = {
 };
 
 const getShiftLocators = (percent: number, locators: Locators): Locators => {
-  const middlePercent = locators.endPercent ? (locators.startPercent + locators.endPercent) / 2 : locators.startPercent;
+  const middlePercent = locators.end ? (locators.start + locators.end) / 2 : locators.start;
 
   if (percent < middlePercent) {
-    return { startPercent: percent, endPercent: locators.endPercent ?? locators.startPercent };
+    return { start: percent, end: locators.end ?? locators.start };
   }
 
-  return { startPercent: locators.startPercent, endPercent: percent };
+  return { start: locators.start, end: percent };
 };
 
 const arePercentsEqual = (a: number, b: number) => Math.abs(a - b) < MIN_LOOP_PERCENT;
@@ -39,7 +39,7 @@ export const useMouseHandlers = () => {
       const percent = clientX / width;
 
       if (!isMouseDown) {
-        updateLocators('hover', { startPercent: percent });
+        updateLocators('hover', { start: percent });
       } else {
         updateLocators('loop', locators => {
           if (!locators) return undefined;
@@ -47,14 +47,14 @@ export const useMouseHandlers = () => {
           if (shiftKey) return getShiftLocators(percent, locators);
 
           if (lastMouseDownPercent < percent && !arePercentsEqual(lastMouseDownPercent, percent)) {
-            return { startPercent: lastMouseDownPercent, endPercent: percent };
+            return { start: lastMouseDownPercent, end: percent };
           }
 
           if (!arePercentsEqual(percent, lastMouseDownPercent)) {
-            return { startPercent: percent, endPercent: lastMouseDownPercent };
+            return { start: percent, end: lastMouseDownPercent };
           }
 
-          return { startPercent: lastMouseDownPercent };
+          return { start: lastMouseDownPercent };
         });
       }
 
@@ -70,13 +70,13 @@ export const useMouseHandlers = () => {
       const percent = clientX / width;
 
       setMouseState({
-        didSetLoopOnMouseDown: !loopLocators || !arePercentsEqual(loopLocators.startPercent, percent),
+        didSetLoopOnMouseDown: !loopLocators || !arePercentsEqual(loopLocators.start, percent),
         isMouseDown: true,
         lastMouseDownPercent: percent,
       });
 
       updateLocators('loop', locators => {
-        if (!shiftKey || !locators) return { startPercent: percent };
+        if (!shiftKey || !locators) return { start: percent };
         return getShiftLocators(percent, locators);
       });
 
