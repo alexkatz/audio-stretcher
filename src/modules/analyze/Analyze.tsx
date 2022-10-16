@@ -1,12 +1,12 @@
 import { useRouter } from 'next/router';
 import { useCallback } from 'react';
+import { IoIosArrowRoundBack } from 'react-icons/io';
+import { useKeydown } from '~/hooks/useKeyboard';
+import { useTrack } from '~/audio/useTrack';
 import { PlayButton } from './PlayButton';
 import { SourceDisplay } from './SourceDisplay';
 import { useInitializeAnalyze } from './useInitializeAnalyze';
-import { IoIosArrowRoundBack } from 'react-icons/io';
 import { Track } from './Track';
-import { useKeydown } from './useKeyboard';
-import { useTrack } from '../../common/audio/useTrack';
 
 export const Analyze = () => {
   const router = useRouter();
@@ -16,10 +16,9 @@ export const Analyze = () => {
   useInitializeAnalyze();
 
   const handleOnClickPlay = useCallback(() => {
-    const { play, pause, draw } = useTrack.getState();
+    const { play, pause } = useTrack.getState();
     if (isPlaying) {
-      pause();
-      draw();
+      pause().draw();
     } else {
       play();
     }
@@ -31,21 +30,17 @@ export const Analyze = () => {
 
   useKeydown(
     ({ code, shiftKey }) => {
-      const { draw, loopLocators, zoom, updateLocators, zoomLocators } = useTrack.getState();
+      const { loopLocators, zoom, updateLocators, zoomLocators } = useTrack.getState();
 
       if (code === 'Space') {
         handleOnClickPlay();
       } else if (!shiftKey && code === 'KeyZ') {
         if (!loopLocators || loopLocators.start === 0 || loopLocators.start === 1) return;
-        zoom(loopLocators);
-        draw();
+        zoom(loopLocators).draw();
       } else if (shiftKey && code === 'KeyZ') {
-        zoom({ start: 0, end: 1, reset: true });
-        updateLocators('loop', zoomLocators);
-        draw();
+        zoom({ start: 0, end: 1, reset: true }).updateLocators('loop', zoomLocators).draw();
       } else if (code === 'Escape') {
-        updateLocators('loop', undefined);
-        draw();
+        updateLocators('loop', undefined).draw();
       }
     },
     [handleOnClickPlay],

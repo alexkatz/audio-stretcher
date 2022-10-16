@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router';
 import { useCallback, useEffect } from 'react';
-import { db } from 'src/common/db';
-import { useParsedSource } from 'src/common/useParsedSource';
 import { useStore } from '~/audio/useStore';
 import { useTrack } from '~/audio/useTrack';
+import { useParsedSource } from '~/hooks/useParsedSource';
+import { db } from 'src/common/db';
 
 export const useInitializeAnalyze = () => {
   const router = useRouter();

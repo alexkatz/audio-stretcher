@@ -20,7 +20,8 @@
       "~/utils/*": ["src/utils/*"],
       "~/components/*": ["src/common/components/*"],
       "~/audio/*": ["src/common/audio/*"],
-      "~/modules/*": ["src/modules/*"]
+      "~/modules/*": ["src/modules/*"],
+      "~/hooks/*": ["src/common/hooks/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.mjs"],

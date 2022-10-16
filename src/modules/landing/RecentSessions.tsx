@@ -2,11 +2,11 @@ import { forwardRef, Ref, useEffect, useMemo, useRef } from 'react';
 import { c } from '~/utils/classnames';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { db } from 'src/common/db';
-import { RecentSession } from './RecentSession';
-import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
 import { motion } from 'framer-motion';
 import { mergeRefs } from '~/utils/mergeRefs';
+import { RecentSession } from './RecentSession';
+import { db } from 'src/common/db';
+import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
 
 const PAGE_SIZE = 10;
 

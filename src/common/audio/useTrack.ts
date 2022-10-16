@@ -1,5 +1,5 @@
-import { AudioSession } from 'src/common/db';
 import create from 'zustand';
+import { AudioSession } from 'src/common/db';
 
 // TODO: https://github.com/olvb/phaze/
 
@@ -24,7 +24,7 @@ type UpdateLocatorOptions = {
 };
 
 type ZoomLocatorOptions = Locators & { reset?: boolean };
-type ZoomFactorOptions = { factor: number; focalPoint: number };
+type ZoomFactorOptions = { factor: number | ((prev: number) => number); focalPoint: number };
 type ZoomOptions = (ZoomLocatorOptions & Never<ZoomFactorOptions>) | (ZoomFactorOptions & Never<ZoomLocatorOptions>);
 
 export type Track = {
@@ -46,16 +46,16 @@ export type Track = {
   initCanvas(canvas: HTMLCanvasElement): void;
 
   play(): void;
-  pause(): void;
+  pause(): Pick<Track, 'draw'>;
   draw(): void;
-  zoom(options: ZoomOptions): void;
+  zoom(options: ZoomOptions): Pick<Track, 'draw' | 'updateLocators'>;
   clear(): void;
 
   updateLocators(
     type?: LocatorType,
     locators?: Locators | ((currentLocators?: Locators) => Locators | undefined),
     options?: UpdateLocatorOptions,
-  ): void;
+  ): Pick<Track, 'draw'>;
 } & TrackLocators;
 
 const defaultValues: Complete<StripFunctions<Track>> = {
@@ -91,7 +91,7 @@ export const useTrack = create<Track>((set, get) => {
 
   let observer!: ResizeObserver;
 
-  const getZoomAdjustedPlayTimes = (): [number, number] => {
+  const getTruePlayTimes = (): [number, number] => {
     const { audioBuffer, loopLocators, zoomLocators, zoomFactor } = get();
     if (!audioBuffer) throw new Error('audioBuffer is not defined');
 
@@ -101,6 +101,11 @@ export const useTrack = create<Track>((set, get) => {
     const loopEndTime = zoomStartTime + ((loopLocators?.end ?? 1) / zoomFactor) * duration;
 
     return [loopStartTime, loopEndTime];
+  };
+
+  const getTrueLocator = (x: number) => {
+    const { zoomFactor, zoomLocators } = get();
+    return (zoomLocators?.start ?? 0) + x / zoomFactor;
   };
 
   const findLocalPeak = (x: number, isPositive: boolean, zoomOffset: number) => {
@@ -168,7 +173,7 @@ export const useTrack = create<Track>((set, get) => {
     const { startedPlayingAt, audioContext, loopLocators, audioBuffer, zoomFactor } = get();
     if (startedPlayingAt == null || audioContext == null || audioBuffer == null) return;
 
-    const [startTime, endTime] = getZoomAdjustedPlayTimes();
+    const [startTime, endTime] = getTruePlayTimes();
 
     const duration = audioBuffer.duration;
     const zoomDuration = duration / zoomFactor;
@@ -266,7 +271,7 @@ export const useTrack = create<Track>((set, get) => {
         bufferSource?.disconnect();
       }
 
-      const [startTime, endTime] = getZoomAdjustedPlayTimes();
+      const [startTime, endTime] = getTruePlayTimes();
       bufferSource = audioContext.createBufferSource();
       bufferSource.loop = true;
       bufferSource.buffer = audioBuffer;
@@ -280,13 +285,15 @@ export const useTrack = create<Track>((set, get) => {
 
     pause() {
       const { isPlaying } = get();
-      if (!isPlaying) return;
+      if (!isPlaying) return get();
 
       set({ isPlaying: false, startedPlayingAt: undefined });
 
       bufferSource?.stop();
       bufferSource?.disconnect();
       bufferSource = undefined;
+
+      return get();
     },
 
     clear() {
@@ -307,30 +314,33 @@ export const useTrack = create<Track>((set, get) => {
 
       const { isPlaying, play } = get();
       if (options.restartPlayback && isPlaying && type === 'loop') play();
+
+      return get();
     },
 
     zoom({ factor, focalPoint, start, end = 1, reset }) {
-      const { samples, zoomFactor, zoomLocators } = get();
+      const { samples, zoomFactor } = get();
 
       peaks.clear();
       offscreenCanvasReady = false;
 
       let zoomRatio: number;
       if (factor != null && focalPoint != null) {
-        zoomRatio = 1 / factor;
+        const newZoomFactor = typeof factor === 'function' ? factor(zoomFactor) : factor;
+        zoomRatio = 1 / newZoomFactor;
         const zoomDiff = 1 - zoomRatio;
         const start = focalPoint * zoomDiff;
         const end = start + zoomRatio;
-        set({ zoomLocators: { start, end }, zoomFactor: factor });
+        const newZoomLocators: Locators = { start, end };
+        set({ zoomLocators: newZoomLocators, zoomFactor: newZoomFactor });
       } else if (reset) {
         zoomRatio = 1;
         set({ zoomLocators: undefined, zoomFactor: 1 });
       } else {
-        const trueStart = (zoomLocators?.start ?? 0) + start / zoomFactor;
-        const trueEnd = (zoomLocators?.start ?? 0) + end / zoomFactor;
+        const trueStart = getTrueLocator(start);
+        const trueEnd = getTrueLocator(end);
         zoomRatio = trueEnd - trueStart;
         const factor = 1 / zoomRatio;
-
         set({
           zoomLocators: zoomRatio === 1 ? undefined : { start: trueStart, end: trueEnd },
           zoomFactor: factor,
@@ -339,6 +349,8 @@ export const useTrack = create<Track>((set, get) => {
       }
 
       samplesPerPixel = (samples.length * zoomRatio) / canvas.width;
+
+      return get();
     },
 
     async initAudio({ arrayBuffer, displayName, source }) {
