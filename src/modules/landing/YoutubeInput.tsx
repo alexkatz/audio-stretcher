@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { KeyboardEvent, useCallback } from 'react';
 import { useStore } from '~/audio/useStore';
 import { LoadableInput } from '~/components/LoadableInput';
+import { CodeKey } from '~/hooks/CodeKey';
 
 type Props = {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -20,7 +21,7 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
   const isDownloading = useStore(store => store.isDownloadingAudio);
   const downloadProgress = useStore(store => store.downloadProgress);
 
-  const handleOnClickGetAudio = useCallback(async () => {
+  const handleGetAudio = useCallback(async () => {
     if (isDownloading) {
       cancelDownload();
       return;
@@ -31,6 +32,15 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
       router.push('/analyze', `/analyze?source=${encodeURIComponent(session.source)}`);
     }
   }, [cancelDownload, getSessionFromYoutube, isDownloading, router]);
+
+  const handleOnKeyDown = useCallback(
+    (e: CodeKey<KeyboardEvent<HTMLInputElement>>) => {
+      if (e.code === 'Enter') {
+        handleGetAudio();
+      }
+    },
+    [handleGetAudio],
+  );
 
   return (
     <div className='flex w-full gap-2'>
@@ -49,6 +59,7 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
           placeholder='youtube url...'
           disabled={isDownloading}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleOnKeyDown}
         />
       </AnimatePresence>
       <AnimatePresence>
@@ -61,7 +72,7 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
             whileHover={{ scale: 1.03, opacity: 1 }}
             whileTap={{ scale: 1.02 }}
             key='get-audio'
-            onClick={handleOnClickGetAudio}
+            onClick={handleGetAudio}
           >
             {isDownloading ? 'cancel' : 'go'}
           </motion.button>

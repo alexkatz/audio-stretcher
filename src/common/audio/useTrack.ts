@@ -332,25 +332,24 @@ export const useTrack = create<Track>((set, get) => {
       return get();
     },
 
-    zoom({ factor: newFactorOrFunc, focus, start, end = 1, reset }) {
+    zoom({ factor, focus, start, end = 1, reset }) {
       const { samples, zoomLocators, zoomState } = get();
       let z = { ...zoomState };
 
       peaks.clear();
       offscreenCanvasReady = false;
 
-      if (newFactorOrFunc != null && focus != null) {
+      if (factor != null && focus != null) {
         if (focus !== z.focus && zoomLocators != null) {
           z.prevFactor = z.factor;
           z.prevStart = zoomLocators.start;
         }
 
         z.focus = focus;
-        z.factor = typeof newFactorOrFunc === 'function' ? newFactorOrFunc(z.factor) : newFactorOrFunc;
+        z.factor = typeof factor === 'function' ? factor(z.factor) : factor;
 
-        const zoomDiff = z.prevFactor - z.factor;
-        const start = z.prevStart + zoomDiff * z.focus;
-        const end = start + z.factor;
+        const start = Math.max(0, z.prevStart + (z.prevFactor - z.factor) * z.focus);
+        const end = Math.min(1, start + z.factor);
 
         set({ zoomLocators: { start, end }, zoomState: z });
       } else if (reset) {
@@ -424,10 +423,11 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   const connection = (window as any)?.__REDUX_DEVTOOLS_EXTENSION__?.connect?.({
     name: 'useTrack',
     instanceId: 1,
+    maxAge: 1,
   });
 
   connection?.init(useTrack.getState());
   useTrack.subscribe(state => {
-    connection.send('update', !state.samples ? state : { ...state, samples: state.samples.byteLength });
+    connection.send('update', !state.samples ? state : { ...state, samples: state.samples.byteLength }, { maxAge: 3 });
   });
 }

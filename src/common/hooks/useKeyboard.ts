@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
+import { CodeKey } from './CodeKey';
 
-type Key = 'Space' | 'ShiftLeft' | 'ShiftRight' | 'KeyZ' | 'Escape';
-
-type UseKeyboardEvent = globalThis.KeyboardEvent & { code: Key };
+type UseKeyboardEvent = CodeKey<globalThis.KeyboardEvent>;
 
 export const useKeydown = (callback: (e: UseKeyboardEvent) => void, deps: readonly any[]) => {
   useEffect(() => {

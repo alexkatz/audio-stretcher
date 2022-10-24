@@ -3,7 +3,7 @@ import { Locators, useTrack } from '../../common/audio/useTrack';
 
 const MIN_LOOP_PERCENT = 0.001;
 const MAX_ZOOM_FACTOR = 0.00001;
-const MIN_ZOOM_FACTOR = 8;
+const MIN_ZOOM_FACTOR = 1;
 const ZOOM_MAGNIFICATION_FACTOR = 0.001;
 
 type MouseState = {
