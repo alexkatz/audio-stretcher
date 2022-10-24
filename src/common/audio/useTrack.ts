@@ -24,8 +24,15 @@ type UpdateLocatorOptions = {
 };
 
 type ZoomLocatorOptions = Locators & { reset?: boolean };
-type ZoomFactorOptions = { factor: number | ((prev: number) => number); focalPoint: number };
+type ZoomFactorOptions = { factor: number | ((prev: number) => number); focus: number };
 type ZoomOptions = (ZoomLocatorOptions & Never<ZoomFactorOptions>) | (ZoomFactorOptions & Never<ZoomLocatorOptions>);
+
+type ZoomState = {
+  factor: number;
+  prevFactor: number;
+  focus: number | undefined;
+  prevStart: number;
+};
 
 export type Track = {
   status: TrackStatus;
@@ -38,9 +45,9 @@ export type Track = {
   startedPlayingAt?: number;
   audioContext?: AudioContext;
 
-  zoomFactor: number;
-
   canvasDomSize: { width?: number; height?: number };
+
+  zoomState: ZoomState;
 
   initAudio(params: InitializeParams): Promise<TrackStatus>;
   initCanvas(canvas: HTMLCanvasElement): void;
@@ -66,7 +73,6 @@ const defaultValues: Complete<StripFunctions<Track>> = {
   loopLocators: undefined,
   hoverLocators: undefined,
   zoomLocators: undefined,
-  zoomFactor: 1,
 
   source: undefined,
   samples: new Float32Array(),
@@ -74,6 +80,13 @@ const defaultValues: Complete<StripFunctions<Track>> = {
   startedPlayingAt: undefined,
   audioContext: undefined,
   canvasDomSize: {},
+
+  zoomState: {
+    factor: 1,
+    prevFactor: 1,
+    prevStart: 0,
+    focus: undefined,
+  },
 };
 
 export const useTrack = create<Track>((set, get) => {
@@ -92,23 +105,23 @@ export const useTrack = create<Track>((set, get) => {
   let observer!: ResizeObserver;
 
   const getTruePlayTimes = (): [number, number] => {
-    const { audioBuffer, loopLocators, zoomLocators, zoomFactor } = get();
+    const { audioBuffer, loopLocators, zoomLocators, zoomState } = get();
     if (!audioBuffer) throw new Error('audioBuffer is not defined');
 
     const duration = audioBuffer.duration;
     const zoomStartTime = (zoomLocators?.start ?? 0) * duration;
-    const loopStartTime = zoomStartTime + ((loopLocators?.start ?? 0) / zoomFactor) * duration;
-    const loopEndTime = zoomStartTime + ((loopLocators?.end ?? 1) / zoomFactor) * duration;
+    const loopStartTime = zoomStartTime + (loopLocators?.start ?? 0) * zoomState.factor * duration;
+    const loopEndTime = zoomStartTime + (loopLocators?.end ?? 1) * zoomState.factor * duration;
 
     return [loopStartTime, loopEndTime];
   };
 
   const getTrueLocator = (x: number) => {
-    const { zoomFactor, zoomLocators } = get();
-    return (zoomLocators?.start ?? 0) + x / zoomFactor;
+    const { zoomLocators, zoomState } = get();
+    return (zoomLocators?.start ?? 0) + x * zoomState.factor;
   };
 
-  const findLocalPeak = (x: number, isPositive: boolean, zoomOffset: number) => {
+  const findLocalPeak = (x: number, isPositive: boolean, offset: number) => {
     const key = isPositive ? x : -x;
 
     if (peaks.has(key)) {
@@ -116,7 +129,7 @@ export const useTrack = create<Track>((set, get) => {
     }
 
     const { samples } = get();
-    const bucketStart = Math.ceil(x * samplesPerPixel + zoomOffset);
+    const bucketStart = Math.ceil(x * samplesPerPixel + offset);
     const bucketEnd = Math.ceil(bucketStart + samplesPerPixel);
 
     let peak = 0;
@@ -152,12 +165,12 @@ export const useTrack = create<Track>((set, get) => {
       offscreenContext.beginPath();
       offscreenContext.moveTo(0, centerY);
 
-      const zoomOffset = samples.length * (zoomLocators?.start ?? 0);
+      const offset = samples.length * (zoomLocators?.start ?? 0);
 
       for (let i = 0; i < canvas.width * 2; i += 1) {
         const isPositive = i < canvas.width;
         const x = isPositive ? i : canvas.width * 2 - i;
-        const peak = findLocalPeak(x, isPositive, zoomOffset);
+        const peak = findLocalPeak(x, isPositive, offset);
         offscreenContext.lineTo(x, centerY - centerY * peak);
       }
 
@@ -170,13 +183,13 @@ export const useTrack = create<Track>((set, get) => {
   };
 
   const drawPlaybackProgress = () => {
-    const { startedPlayingAt, audioContext, loopLocators, audioBuffer, zoomFactor } = get();
+    const { startedPlayingAt, audioContext, loopLocators, audioBuffer, zoomState } = get();
     if (startedPlayingAt == null || audioContext == null || audioBuffer == null) return;
 
     const [startTime, endTime] = getTruePlayTimes();
 
     const duration = audioBuffer.duration;
-    const zoomDuration = duration / zoomFactor;
+    const zoomDuration = duration * zoomState.factor;
     const loopDuration = endTime - startTime;
 
     const loopLocatorStart = loopLocators?.start ?? 0;
@@ -237,12 +250,13 @@ export const useTrack = create<Track>((set, get) => {
       observer = new ResizeObserver(([entry]) => {
         const width = entry?.contentRect?.width;
         const height = entry?.contentRect?.height;
-        const { draw, samples, zoomFactor } = get();
+
+        const { draw, samples, zoomState } = get();
 
         if (width && height) {
           canvas.width = width * RES_FACTOR;
           canvas.height = height * RES_FACTOR;
-          samplesPerPixel = (samples.length * (1 / zoomFactor)) / canvas.width;
+          samplesPerPixel = (samples.length * zoomState.factor) / canvas.width;
 
           offscreenCanvas.width = canvas.width;
           offscreenCanvas.height = canvas.height;
@@ -307,7 +321,7 @@ export const useTrack = create<Track>((set, get) => {
       set(state => {
         const key = `${type}Locators` as const;
         const nextLocators = typeof locators === 'function' ? locators(state[key]) : locators;
-        const updates = { [key]: nextLocators } as Partial<Track>;
+        const updates: Partial<Track> = { [key]: nextLocators };
         if (type === 'loop' && locators != null) updates.hoverLocators = undefined;
         return updates;
       });
@@ -318,37 +332,47 @@ export const useTrack = create<Track>((set, get) => {
       return get();
     },
 
-    zoom({ factor, focalPoint, start, end = 1, reset }) {
-      const { samples, zoomFactor } = get();
+    zoom({ factor: newFactorOrFunc, focus, start, end = 1, reset }) {
+      const { samples, zoomLocators, zoomState } = get();
+      let z = { ...zoomState };
 
       peaks.clear();
       offscreenCanvasReady = false;
 
-      let zoomRatio: number;
-      if (factor != null && focalPoint != null) {
-        const newZoomFactor = typeof factor === 'function' ? factor(zoomFactor) : factor;
-        zoomRatio = 1 / newZoomFactor;
-        const zoomDiff = 1 - zoomRatio;
-        const start = focalPoint * zoomDiff;
-        const end = start + zoomRatio;
-        const newZoomLocators: Locators = { start, end };
-        set({ zoomLocators: newZoomLocators, zoomFactor: newZoomFactor });
+      if (newFactorOrFunc != null && focus != null) {
+        if (focus !== z.focus && zoomLocators != null) {
+          z.prevFactor = z.factor;
+          z.prevStart = zoomLocators.start;
+        }
+
+        z.focus = focus;
+        z.factor = typeof newFactorOrFunc === 'function' ? newFactorOrFunc(z.factor) : newFactorOrFunc;
+
+        const zoomDiff = z.prevFactor - z.factor;
+        const start = z.prevStart + zoomDiff * z.focus;
+        const end = start + z.factor;
+
+        set({ zoomLocators: { start, end }, zoomState: z });
       } else if (reset) {
-        zoomRatio = 1;
-        set({ zoomLocators: undefined, zoomFactor: 1 });
+        z = defaultValues.zoomState;
+        set({ zoomLocators: undefined, zoomState: z });
       } else {
         const trueStart = getTrueLocator(start);
         const trueEnd = getTrueLocator(end);
-        zoomRatio = trueEnd - trueStart;
-        const factor = 1 / zoomRatio;
+
+        z.prevFactor = z.factor;
+        z.factor = trueEnd - trueStart;
+        z.focus = undefined;
+        z.prevStart = trueStart;
+
         set({
-          zoomLocators: zoomRatio === 1 ? undefined : { start: trueStart, end: trueEnd },
-          zoomFactor: factor,
+          zoomLocators: z.factor === 1 ? undefined : { start: trueStart, end: trueEnd },
           loopLocators: undefined,
+          zoomState: z,
         });
       }
 
-      samplesPerPixel = (samples.length * zoomRatio) / canvas.width;
+      samplesPerPixel = (samples.length * z.factor) / canvas.width;
 
       return get();
     },

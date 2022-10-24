@@ -2,6 +2,9 @@ import { useState, useCallback, MouseEvent, ComponentPropsWithoutRef, useLayoutE
 import { Locators, useTrack } from '../../common/audio/useTrack';
 
 const MIN_LOOP_PERCENT = 0.001;
+const MAX_ZOOM_FACTOR = 0.00001;
+const MIN_ZOOM_FACTOR = 8;
+const ZOOM_MAGNIFICATION_FACTOR = 0.001;
 
 type MouseState = {
   isMouseDown: boolean;
@@ -124,11 +127,17 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
     (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
       const { zoom } = useTrack.getState();
       const { deltaY, clientX } = e;
+
       zoom({
-        focalPoint: clientX / width,
-        factor: prevFactor => Math.max(1, prevFactor - deltaY * prevFactor * 0.01),
+        focus: clientX / width,
+        factor: prevFactor =>
+          Math.min(
+            MIN_ZOOM_FACTOR,
+            Math.max(MAX_ZOOM_FACTOR, prevFactor + deltaY * prevFactor * ZOOM_MAGNIFICATION_FACTOR),
+          ),
       }).draw();
     },
     [width],
