@@ -152,7 +152,7 @@ export const useTrack = create<Track>((set, get) => {
 
       const gradient = offscreenContext.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, 'white');
-      gradient.addColorStop(1, 'rgba(4, 247, 105, 0.5)');
+      gradient.addColorStop(1, 'purple');
       offscreenContext.fillStyle = gradient;
 
       offscreenContext.shadowColor = 'rgba(216, 184, 193, 0.5)';
