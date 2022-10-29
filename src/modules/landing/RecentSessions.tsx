@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { mergeRefs } from '~/utils/mergeRefs';
 import { RecentSession } from './RecentSession';
 import { db } from 'src/common/db';
-import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
+import { DB_QUERY_KEY } from 'src/common/dbQueryKey';
 
 const PAGE_SIZE = 10;
 

@@ -1,7 +1,7 @@
 import { pipeline } from 'stream/promises';
 import { NextApiRequest, NextApiResponse } from 'next';
 import ytdl from 'ytdl-core';
-import { HEADER_KEYS } from 'src/common/HeaderKey';
+import { HEADER_KEYS } from 'src/common/headerKeys';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {

@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useStore } from '~/audio/useStore';
-import { InitializeParams, useTrack } from '../../common/audio/useTrack';
+import { useTrack } from '../../common/audio/useTrack';
 
 export const useFileDrop = () => {
   const router = useRouter();
@@ -21,7 +21,7 @@ export const useFileDrop = () => {
         setIsLoadingFile(true);
         setDroppedFileName(accepted.name);
 
-        const params: InitializeParams = {
+        const params: Parameters<typeof initAudio>[0] = {
           arrayBuffer: await accepted.arrayBuffer(),
           displayName: accepted.name,
           source: accepted.name,

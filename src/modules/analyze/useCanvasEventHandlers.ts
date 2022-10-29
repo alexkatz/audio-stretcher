@@ -1,5 +1,6 @@
 import { useState, useCallback, MouseEvent, ComponentPropsWithoutRef, useLayoutEffect } from 'react';
-import { Locators, useTrack } from '../../common/audio/useTrack';
+import { useTrack } from '../../common/audio/useTrack';
+import { Locators } from 'src/common/types/Locators';
 
 const MIN_LOOP_PERCENT = 0.001;
 const MAX_ZOOM_FACTOR = 0.00001;
@@ -54,12 +55,16 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
       if (!isMouseDown) {
         updateLocators('hover', { start: percent }).draw();
       } else {
-        updateLocators('loop', locators => {
-          if (!locators) return undefined;
-          return shiftKey
-            ? getShiftedLoopLocators(percent, locators)
-            : getUpdatedLoopLocators(lastMouseDownPercent, percent);
-        }).draw();
+        updateLocators(
+          'loop',
+          locators => {
+            if (!locators) return undefined;
+            return shiftKey
+              ? getShiftedLoopLocators(percent, locators)
+              : getUpdatedLoopLocators(lastMouseDownPercent, percent);
+          },
+          { restartPlayback: true },
+        ).draw();
       }
     },
     [mouseState, width],
@@ -77,10 +82,14 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
         lastMouseDownPercent: percent,
       });
 
-      updateLocators('loop', locators => {
-        if (!shiftKey || !locators) return { start: percent };
-        return getShiftedLoopLocators(percent, locators);
-      }).draw();
+      updateLocators(
+        'loop',
+        locators => {
+          if (!shiftKey || !locators) return { start: percent };
+          return getShiftedLoopLocators(percent, locators);
+        },
+        { restartPlayback: true },
+      ).draw();
     },
     [width],
   );

@@ -6,7 +6,7 @@ import { MouseEvent, useCallback, useMemo } from 'react';
 import { IoMdRemove } from 'react-icons/io';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useStore } from '~/audio/useStore';
-import { DB_QUERY_KEY } from 'src/common/DbQueryKey';
+import { DB_QUERY_KEY } from 'src/common/dbQueryKey';
 import { AudioSessionSummary, db } from 'src/common/db';
 
 dayjs.extend(localizedFormat);

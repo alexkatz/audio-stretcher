@@ -1,7 +1,7 @@
 import create from 'zustand';
 import { getIsValidYoutubeUrl } from '~/utils/validateYoutubeUrl';
 import { AddSessionParams, AudioSession, db } from '../db';
-import { HEADER_KEYS } from '../HeaderKey';
+import { HEADER_KEYS } from '../headerKeys';
 
 export type StoreState = {
   youtubeUrl: string;
