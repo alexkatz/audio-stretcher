@@ -57,6 +57,10 @@ type Track = {
     locators?: Locators | ((currentLocators?: Locators) => Locators | undefined),
     options?: UpdateLocatorOptions,
   ): Pick<Track, 'draw'>;
+
+  getNormalized<T extends number | Locators>(local: T): T;
+  getLocalized<T extends number | Locators>(local: T): T;
+  getLoopTimes(): [number, number];
 } & TrackLocators;
 
 const DEFAULT_LOCATORS: Locators = { start: 0 };
@@ -96,6 +100,7 @@ export const useTrack = create<Track>((set, get) => {
   const peaks = new Map<number, number>();
 
   let bufferSource: AudioBufferSourceNode | undefined;
+  let gainNode!: GainNode;
 
   let canvas!: HTMLCanvasElement;
   let context!: CanvasRenderingContext2D;
@@ -107,16 +112,48 @@ export const useTrack = create<Track>((set, get) => {
 
   let observer!: ResizeObserver;
 
-  const getTruePlayTimes = (): [number, number] => {
-    const { audioBuffer, loopLocators = DEFAULT_LOCATORS, zoomLocators = DEFAULT_LOCATORS, zoomState } = get();
+  const getLoopTimes = (): [number, number] => {
+    const { audioBuffer, loopLocators, zoomLocators = DEFAULT_LOCATORS } = get();
     if (!audioBuffer) throw new Error('audioBuffer is not defined');
 
-    const duration = audioBuffer.duration;
-    const zoomStartTime = zoomLocators.start * duration;
-    const loopStartTime = zoomStartTime + loopLocators.start * zoomState.factor * duration;
-    const loopEndTime = zoomStartTime + (loopLocators?.end ?? 1) * zoomState.factor * duration;
+    const loopStartTime = (loopLocators?.start ?? zoomLocators.start) * audioBuffer.duration;
+    const loopEndTime = (loopLocators?.end ?? zoomLocators.end ?? 1) * audioBuffer.duration;
 
     return [loopStartTime, loopEndTime];
+  };
+
+  const getNormalized = <T extends number | Locators>(local: T): T => {
+    const { zoomLocators = DEFAULT_LOCATORS, zoomState } = get();
+
+    if (zoomState.factor === 1) return local;
+
+    if (typeof local === 'number') {
+      return (zoomLocators.start + local * zoomState.factor) as T;
+    }
+
+    const { start, end } = local;
+
+    return {
+      start: zoomLocators.start + start * zoomState.factor,
+      end: end != null ? zoomLocators.start + end * zoomState.factor : undefined,
+    } as T;
+  };
+
+  const getLocalized = <T extends number | Locators>(normalized: T): T => {
+    const { zoomLocators = DEFAULT_LOCATORS, zoomState } = get();
+
+    if (zoomState.factor === 1) return normalized;
+
+    if (typeof normalized === 'number') {
+      return ((normalized - zoomLocators.start) / zoomState.factor) as T;
+    }
+
+    const { start, end } = normalized;
+
+    return {
+      start: (start - zoomLocators.start) / zoomState.factor,
+      end: end != null ? (end - zoomLocators.start) / zoomState.factor : undefined,
+    } as T;
   };
 
   const findLocalPeak = (x: number, isPositive: boolean, offset: number) => {
@@ -182,18 +219,16 @@ export const useTrack = create<Track>((set, get) => {
 
   const drawPlaybackProgress = () => {
     const { startedPlayingAt, startedPlayingFrom, audioContext, audioBuffer, zoomState } = get();
+
     if (startedPlayingAt == null || startedPlayingFrom == null || audioContext == null || audioBuffer == null) return;
 
-    const [startTime, endTime] = getTruePlayTimes();
-
-    const duration = audioBuffer.duration;
-    const zoomDuration = duration * zoomState.factor;
+    const [startTime, endTime] = getLoopTimes();
+    const zoomDuration = audioBuffer.duration * zoomState.factor;
     const loopDuration = endTime - startTime;
-
-    const loopOffsetTime = startedPlayingFrom * zoomDuration;
-
+    const localStartedPlayingFrom = getLocalized(startedPlayingFrom);
+    const localOffset = localStartedPlayingFrom * zoomDuration;
     const timePlaying = audioContext.currentTime - startedPlayingAt;
-    const cursorTime = (timePlaying % loopDuration) + loopOffsetTime;
+    const cursorTime = (timePlaying % loopDuration) + localOffset;
     const cursor = cursorTime / zoomDuration;
 
     const x = cursor * canvas.width;
@@ -209,7 +244,7 @@ export const useTrack = create<Track>((set, get) => {
     if (!hoverLocators) return;
 
     const { start } = hoverLocators;
-    const x = start * canvas.width;
+    const x = getLocalized(start) * canvas.width;
 
     context.save();
     context.fillStyle = 'rgba(255, 255, 255, 0.2)';
@@ -221,7 +256,8 @@ export const useTrack = create<Track>((set, get) => {
     const { loopLocators } = get();
     if (!loopLocators) return;
 
-    const { start, end } = loopLocators;
+    const { start, end } = getLocalized(loopLocators);
+
     const startX = start * canvas.width;
     const endX = end == null ? undefined : end * canvas.width;
 
@@ -290,15 +326,20 @@ export const useTrack = create<Track>((set, get) => {
         bufferSource?.disconnect();
       }
 
-      const [startTime, endTime] = getTruePlayTimes();
+      const [startTime, endTime] = getLoopTimes();
       const startedPlayingFrom = zoomLocators.start + loopLocators.start * zoomState.factor;
 
       bufferSource = audioContext.createBufferSource();
+
       bufferSource.loop = true;
       bufferSource.buffer = audioBuffer;
       bufferSource.loopStart = startTime;
       bufferSource.loopEnd = endTime;
-      bufferSource.connect(audioContext.destination);
+
+      bufferSource.connect(gainNode);
+
+      gainNode.connect(audioContext.destination);
+
       bufferSource.start(0, startTime);
 
       set({ isPlaying: true, startedPlayingFrom, startedPlayingAt: audioContext.currentTime });
@@ -328,7 +369,7 @@ export const useTrack = create<Track>((set, get) => {
       set(state => {
         const key = `${type}Locators` as const;
         const nextLocators = typeof locators === 'function' ? locators(state[key]) : locators;
-        const updates: Partial<Track> = { [key]: nextLocators };
+        const updates: Partial<Track> = { [key]: nextLocators == null ? undefined : getNormalized(nextLocators) };
         if (type === 'loop' && locators != null) updates.hoverLocators = undefined;
         return updates;
       });
@@ -338,6 +379,10 @@ export const useTrack = create<Track>((set, get) => {
 
       return get();
     },
+
+    getNormalized,
+    getLocalized,
+    getLoopTimes,
 
     zoom({ factor, focus, start, end = 1, reset }) {
       const { samples, zoomLocators = DEFAULT_LOCATORS, zoomState } = get();
@@ -375,16 +420,16 @@ export const useTrack = create<Track>((set, get) => {
         z = DEFAULT_VALUES.zoomState;
         set({ zoomLocators: undefined, zoomState: z });
       } else {
-        const trueStart = zoomLocators.start + start * z.factor;
-        const trueEnd = zoomLocators.start + end * z.factor;
+        const normalizedStart = getNormalized(start);
+        const normalizedEnd = getNormalized(end);
 
         z.prevFactor = z.factor;
-        z.factor = trueEnd - trueStart;
+        z.factor = normalizedEnd - normalizedStart;
         z.focus = undefined;
-        z.prevStart = trueStart;
+        z.prevStart = normalizedStart;
 
         set({
-          zoomLocators: z.factor === 1 ? undefined : { start: trueStart, end: trueEnd },
+          zoomLocators: z.factor === 1 ? undefined : { start: normalizedStart, end: normalizedEnd },
           loopLocators: undefined,
           zoomState: z,
         });
@@ -415,6 +460,8 @@ export const useTrack = create<Track>((set, get) => {
             : leftChannelData.map((left, i) => (left + (rightChannelData[i] ?? left)) / 2);
 
         status = 'initialized';
+
+        gainNode = audioContext.createGain();
 
         set({
           status,

@@ -48,7 +48,7 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
 
   const onMouseMove = useCallback(
     (e: MouseEvent<HTMLCanvasElement>) => {
-      const { updateLocators } = useTrack.getState();
+      const { updateLocators, getLocalized } = useTrack.getState();
       const { clientX, shiftKey } = e;
       const { lastMouseDownPercent, isMouseDown } = mouseState;
       const percent = clientX / width;
@@ -60,7 +60,7 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
           locators => {
             if (!locators) return undefined;
             return shiftKey
-              ? getShiftedLoopLocators(percent, locators)
+              ? getShiftedLoopLocators(percent, getLocalized(locators))
               : getUpdatedLoopLocators(lastMouseDownPercent, percent);
           },
           { restartPlayback: true },
@@ -73,11 +73,11 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
   const onMouseDown = useCallback(
     (e: MouseEvent<HTMLCanvasElement>) => {
       const { shiftKey, clientX } = e;
-      const { loopLocators, updateLocators } = useTrack.getState();
+      const { loopLocators, updateLocators, getLocalized } = useTrack.getState();
       const percent = clientX / width;
 
       setMouseState({
-        didSetLoopOnMouseDown: !loopLocators || !arePercentsEqual(loopLocators.start, percent),
+        didSetLoopOnMouseDown: !loopLocators || !arePercentsEqual(getLocalized(loopLocators.start), percent),
         isMouseDown: true,
         lastMouseDownPercent: percent,
       });
@@ -86,7 +86,7 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
         'loop',
         locators => {
           if (!shiftKey || !locators) return { start: percent };
-          return getShiftedLoopLocators(percent, locators);
+          return getShiftedLoopLocators(percent, getLocalized(locators));
         },
         { restartPlayback: true },
       ).draw();
@@ -99,6 +99,7 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
       const percent = e.clientX / width;
       const { updateLocators } = useTrack.getState();
       const { lastMouseDownPercent, didSetLoopOnMouseDown } = mouseState;
+
       if (!didSetLoopOnMouseDown && Math.abs(lastMouseDownPercent - percent) < MIN_LOOP_PERCENT) {
         updateLocators('loop', undefined).draw();
       }
