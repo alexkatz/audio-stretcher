@@ -16,8 +16,9 @@ type UpdateLocatorOptions = {
   restartPlayback?: boolean;
 };
 
-type ZoomLocatorOptions = Locators & { reset?: boolean };
+type ZoomResetOptions = { reset: true };
 type ZoomFactorOptions = { factor: number | ((prev: number) => number); focus: number };
+type ZoomLocatorOptions = (Locators & Never<ZoomResetOptions>) | (ZoomResetOptions & Never<Locators>);
 type ZoomOptions = (ZoomLocatorOptions & Never<ZoomFactorOptions>) | (ZoomFactorOptions & Never<ZoomLocatorOptions>);
 
 type ZoomState = {
@@ -36,7 +37,6 @@ type Track = {
   source?: string;
   audioBuffer?: AudioBuffer;
   startedPlayingAt?: number;
-  startedPlayingFrom?: number;
   audioContext?: AudioContext;
 
   canvasDomSize: { width?: number; height?: number };
@@ -78,7 +78,6 @@ const DEFAULT_VALUES: Complete<StripFunctions<Track>> = {
   zoomLocators: undefined,
 
   startedPlayingAt: undefined,
-  startedPlayingFrom: undefined,
 
   source: undefined,
   samples: new Float32Array(),
@@ -218,18 +217,14 @@ export const useTrack = create<Track>((set, get) => {
   };
 
   const drawPlaybackProgress = () => {
-    const { startedPlayingAt, startedPlayingFrom, audioContext, audioBuffer, zoomState } = get();
-
-    if (startedPlayingAt == null || startedPlayingFrom == null || audioContext == null || audioBuffer == null) return;
+    const { startedPlayingAt, audioContext, audioBuffer } = get();
+    if (startedPlayingAt == null || audioContext == null || audioBuffer == null) return;
 
     const [startTime, endTime] = getLoopTimes();
-    const zoomDuration = audioBuffer.duration * zoomState.factor;
     const loopDuration = endTime - startTime;
-    const localStartedPlayingFrom = getLocalized(startedPlayingFrom);
-    const localOffset = localStartedPlayingFrom * zoomDuration;
     const timePlaying = audioContext.currentTime - startedPlayingAt;
-    const cursorTime = (timePlaying % loopDuration) + localOffset;
-    const cursor = cursorTime / zoomDuration;
+    const cursorTime = (timePlaying % loopDuration) + startTime;
+    const cursor = getLocalized(cursorTime / audioBuffer.duration);
 
     const x = cursor * canvas.width;
 
@@ -252,7 +247,7 @@ export const useTrack = create<Track>((set, get) => {
     context.restore();
   };
 
-  const drawLoopLopcators = () => {
+  const drawLoopLocators = () => {
     const { loopLocators } = get();
     if (!loopLocators) return;
 
@@ -267,7 +262,7 @@ export const useTrack = create<Track>((set, get) => {
     context.restore();
   };
 
-  const drawSequence = [drawWaveform, drawPlaybackProgress, drawHoverLocators, drawLoopLopcators];
+  const drawSequence = [drawWaveform, drawPlaybackProgress, drawHoverLocators, drawLoopLocators];
 
   return {
     ...DEFAULT_VALUES,
@@ -310,14 +305,7 @@ export const useTrack = create<Track>((set, get) => {
     },
 
     play() {
-      const {
-        isPlaying,
-        audioBuffer,
-        audioContext,
-        loopLocators = DEFAULT_LOCATORS,
-        zoomLocators = DEFAULT_LOCATORS,
-        zoomState,
-      } = get();
+      const { isPlaying, audioBuffer, audioContext } = get();
 
       if (audioBuffer == null || audioContext == null) return;
 
@@ -327,7 +315,6 @@ export const useTrack = create<Track>((set, get) => {
       }
 
       const [startTime, endTime] = getLoopTimes();
-      const startedPlayingFrom = zoomLocators.start + loopLocators.start * zoomState.factor;
 
       bufferSource = audioContext.createBufferSource();
 
@@ -342,14 +329,14 @@ export const useTrack = create<Track>((set, get) => {
 
       bufferSource.start(0, startTime);
 
-      set({ isPlaying: true, startedPlayingFrom, startedPlayingAt: audioContext.currentTime });
+      set({ isPlaying: true, startedPlayingAt: audioContext.currentTime });
     },
 
     pause() {
       const { isPlaying } = get();
       if (!isPlaying) return get();
 
-      set({ isPlaying: false, startedPlayingAt: undefined, startedPlayingFrom: undefined });
+      set({ isPlaying: false, startedPlayingAt: undefined });
 
       bufferSource?.stop();
       bufferSource?.disconnect();

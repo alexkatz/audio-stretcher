@@ -38,7 +38,9 @@ export const Analyze = () => {
         if (!loopLocators || loopLocators.start === 0 || loopLocators.start === 1) return;
         zoom(loopLocators).draw();
       } else if (shiftKey && code === 'KeyZ') {
-        zoom({ start: 0, end: 1, reset: true }).updateLocators('loop', zoomLocators).draw();
+        zoom({ reset: true })
+          .updateLocators('loop', loopLocators => (loopLocators == null ? zoomLocators : loopLocators))
+          .draw();
       } else if (code === 'Escape') {
         updateLocators('loop', undefined).draw();
       }
