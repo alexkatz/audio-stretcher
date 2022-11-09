@@ -1,4 +1,4 @@
-import { ComponentPropsWithoutRef, forwardRef } from 'react';
+import { ComponentPropsWithoutRef, forwardRef, Ref } from 'react';
 import { c } from '~/utils/classnames';
 import { IoIosPlay, IoIosPause } from 'react-icons/io';
 import { motion } from 'framer-motion';
@@ -7,14 +7,10 @@ type Props = ComponentPropsWithoutRef<'button'> & {
   isPlaying: boolean;
 };
 
-const SIZE = 44;
-
 export const PlayButton = motion(
-  forwardRef<HTMLButtonElement, Props>(({ className, isPlaying, ...props }, ref) => {
-    return (
-      <button className={c('flex items-center justify-center', className)} ref={ref} {...props}>
-        {isPlaying ? <IoIosPause size={SIZE} /> : <IoIosPlay size={SIZE} />}
-      </button>
-    );
-  }),
+  forwardRef(({ className, isPlaying, ...props }: Props, ref: Ref<HTMLButtonElement>) => (
+    <button className={c('flex items-center justify-center text-slate-500', className)} ref={ref} {...props}>
+      {isPlaying ? <IoIosPause className='h-5/6 w-5/6' /> : <IoIosPlay className='h-5/6 w-5/6' />}
+    </button>
+  )),
 );

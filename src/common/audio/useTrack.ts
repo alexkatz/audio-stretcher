@@ -8,7 +8,7 @@ type InitializeParams = Pick<AudioSession, 'arrayBuffer' | 'source' | 'displayNa
 
 type TrackStatus = 'uninitialized' | 'initialized' | 'initializing' | 'failed-to-initialize';
 
-type LocatorType = 'loop' | 'hover' | 'zoom';
+type LocatorType = 'prevLoop' | 'loop' | 'hover' | 'zoom';
 
 type TrackLocators = { [K in LocatorType as `${K}Locators`]?: Locators };
 
@@ -74,6 +74,7 @@ const DEFAULT_VALUES: Complete<StripFunctions<Track>> = {
   status: 'uninitialized',
 
   loopLocators: undefined,
+  prevLoopLocators: undefined,
   hoverLocators: undefined,
   zoomLocators: undefined,
 
@@ -292,7 +293,7 @@ export const useTrack = create<Track>((set, get) => {
 
           peaks.clear();
 
-          set({ canvasDomSize: { width: width, height: height } });
+          set({ canvasDomSize: { width, height } });
           draw();
         }
       });
@@ -356,8 +357,15 @@ export const useTrack = create<Track>((set, get) => {
       set(state => {
         const key = `${type}Locators` as const;
         const nextLocators = typeof locators === 'function' ? locators(state[key]) : locators;
-        const updates: Partial<Track> = { [key]: nextLocators == null ? undefined : getNormalized(nextLocators) };
-        if (type === 'loop' && locators != null) updates.hoverLocators = undefined;
+        const updates: TrackLocators = { [key]: nextLocators == null ? undefined : getNormalized(nextLocators) };
+
+        if (type === 'loop') {
+          updates.prevLoopLocators = state.loopLocators;
+          if (locators != null) {
+            updates.hoverLocators = undefined;
+          }
+        }
+
         return updates;
       });
 

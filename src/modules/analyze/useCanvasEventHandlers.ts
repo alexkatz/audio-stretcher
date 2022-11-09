@@ -101,7 +101,7 @@ export const useCanvasEventHandlers = (canvas: HTMLCanvasElement | null): Compon
       const { lastMouseDownPercent, didSetLoopOnMouseDown } = mouseState;
 
       if (!didSetLoopOnMouseDown && Math.abs(lastMouseDownPercent - percent) < MIN_LOOP_PERCENT) {
-        updateLocators('loop', undefined).draw();
+        updateLocators('loop', undefined, { restartPlayback: true }).draw();
       }
 
       setMouseState(state => ({
