@@ -1,8 +1,7 @@
 import { useState, useLayoutEffect } from 'react';
-import { useKeydown } from '~/hooks/useKeyboard';
+import { useKeyDown } from '~/hooks/useKeyboard';
 import { c } from '~/utils/classnames';
 import { useTrack } from '../../common/audio/useTrack';
-import { TrackBottomArea } from './TrackBottomArea';
 import { useAnimatePlayback } from './useAnimatePlayback';
 import { useCanvasEventHandlers } from './useCanvasEventHandlers';
 
@@ -13,7 +12,7 @@ type Props = {
 export const Track = ({ className }: Props) => {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
-  useKeydown(({ code, shiftKey }) => {
+  useKeyDown(({ code, shiftKey }) => {
     const { loopLocators, zoom, updateLocators, zoomLocators } = useTrack.getState();
 
     if (!shiftKey && code === 'KeyZ') {
@@ -40,7 +39,6 @@ export const Track = ({ className }: Props) => {
   return (
     <div className={c('relative cursor-text', className)}>
       <canvas className='h-full w-full' ref={setCanvas} {...canvasHandlers} />
-      <TrackBottomArea className='absolute bottom-0 left-0 right-0 select-none' />
     </div>
   );
 };

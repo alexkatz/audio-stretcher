@@ -3,7 +3,7 @@ import { CodeKey } from './CodeKey';
 
 type UseKeyboardEvent = CodeKey<globalThis.KeyboardEvent>;
 
-export const useKeydown = (callback: (e: UseKeyboardEvent) => void, deps: readonly any[]) => {
+export const useKeyDown = (callback: (e: UseKeyboardEvent) => void, deps: readonly any[]) => {
   useEffect(() => {
     window.addEventListener('keydown', callback as any);
     return () => window.removeEventListener('keydown', callback as any);

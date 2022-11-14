@@ -1,7 +1,8 @@
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { IoIosArrowRoundBack } from 'react-icons/io';
 import { useTrack } from '~/audio/useTrack';
+import { Slider } from '~/components/Slider';
 import { SourceDisplay } from './SourceDisplay';
 import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { Track } from './Track';
@@ -10,6 +11,8 @@ import { TopControls } from './TopControls';
 export const Analyze = () => {
   const router = useRouter();
   const status = useTrack(track => track.status);
+
+  const [gain, setGain] = useState(0.5);
 
   useInitializeAnalyze();
 
@@ -31,6 +34,8 @@ export const Analyze = () => {
 
       <SourceDisplay />
       <TopControls />
+      <Slider horizontal className='w-96' value={gain} onChange={setGain} />
+      <Slider vertical className='h-48' value={gain} onChange={setGain} />
     </div>
   );
 };

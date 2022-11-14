@@ -1,67 +1,8 @@
 import create from 'zustand';
 import { Locators } from '../types/Locators';
-import { AudioSession } from 'src/common/db';
+import type { Track, TrackLocators, TrackStatus } from './useTrack.types';
 
 // TODO: https://github.com/olvb/phaze/
-
-type InitializeParams = Pick<AudioSession, 'arrayBuffer' | 'source' | 'displayName'>;
-
-type TrackStatus = 'uninitialized' | 'initialized' | 'initializing' | 'failed-to-initialize';
-
-type LocatorType = 'prevLoop' | 'loop' | 'hover' | 'zoom';
-
-type TrackLocators = { [K in LocatorType as `${K}Locators`]?: Locators };
-
-type UpdateLocatorOptions = {
-  restartPlayback?: boolean;
-};
-
-type ZoomResetOptions = { reset: true };
-type ZoomFactorOptions = { factor: number | ((prev: number) => number); focus: number };
-type ZoomLocatorOptions = (Locators & Never<ZoomResetOptions>) | (ZoomResetOptions & Never<Locators>);
-type ZoomOptions = (ZoomLocatorOptions & Never<ZoomFactorOptions>) | (ZoomFactorOptions & Never<ZoomLocatorOptions>);
-
-type ZoomState = {
-  factor: number;
-  prevFactor: number;
-  focus: number | undefined;
-  prevStart: number;
-};
-
-type Track = {
-  status: TrackStatus;
-  isPlaying: boolean;
-
-  displayName?: string;
-  samples: Float32Array;
-  source?: string;
-  audioBuffer?: AudioBuffer;
-  startedPlayingAt?: number;
-  audioContext?: AudioContext;
-
-  canvasDomSize: { width?: number; height?: number };
-
-  zoomState: ZoomState;
-
-  initAudio(params: InitializeParams): Promise<TrackStatus>;
-  initCanvas(canvas: HTMLCanvasElement): void;
-
-  play(): void;
-  pause(): Pick<Track, 'draw'>;
-  draw(): void;
-  zoom(options: ZoomOptions): Pick<Track, 'draw' | 'updateLocators'>;
-  clear(): void;
-
-  updateLocators(
-    type?: LocatorType,
-    locators?: Locators | ((currentLocators?: Locators) => Locators | undefined),
-    options?: UpdateLocatorOptions,
-  ): Pick<Track, 'draw'>;
-
-  getNormalized<T extends number | Locators>(local: T): T;
-  getLocalized<T extends number | Locators>(local: T): T;
-  getLoopTimes(): [number, number];
-} & TrackLocators;
 
 const DEFAULT_LOCATORS: Locators = { start: 0 };
 
@@ -258,7 +199,7 @@ export const useTrack = create<Track>((set, get) => {
     const endX = end == null ? undefined : end * canvas.width;
 
     context.save();
-    context.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    context.fillStyle = 'rgba(255, 255, 255, 0.2)';
     context.fillRect(startX, 0, endX ? endX - startX : CURSOR_WIDTH, canvas.height);
     context.restore();
   };

@@ -28,7 +28,7 @@
     "react-hooks/exhaustive-deps": [
       "warn",
       {
-        "additionalHooks": "(^useKeydown|useKeyup$)"
+        "additionalHooks": "(^useKeyDown|useKeyUp|useMouseMove|useMouseUp$)"
       }
     ],
     "react/display-name": "off"

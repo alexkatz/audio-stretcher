@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 import { MotionProps } from 'framer-motion';
 import { useTrack } from '~/audio/useTrack';
-import { useKeydown } from '~/hooks/useKeyboard';
+import { useKeyDown } from '~/hooks/useKeyboard';
 import { c } from '~/utils/classnames';
 import { CycleButton } from './CycleButton';
 import { PlayButton } from './PlayButton';
+import { TrackNumerics } from './TrackNumerics';
 
 type Props = {
   className?: string;
@@ -35,7 +36,7 @@ export const TopControls = ({ className }: Props) => {
     updateLocators('loop', loopLocators == null ? prevLoopLocators : undefined).draw();
   }, []);
 
-  useKeydown(
+  useKeyDown(
     ({ code }) => {
       if (code === 'Space') {
         handleOnClickPlay();
@@ -47,7 +48,8 @@ export const TopControls = ({ className }: Props) => {
   const isCycleButtonEnabled = loopLocatorsExist || prevLoopLocatorsExist;
 
   return (
-    <div className={c('flex w-full flex-row items-center justify-center', className)}>
+    <div className={c('relative flex w-full flex-row items-center justify-center', className)}>
+      <TrackNumerics className='absolute top-0 left-0 right-0' />
       <div className='h-full flex-1 items-center justify-end gap-2'></div>
 
       <PlayButton className='h-20 w-20' onClick={handleOnClickPlay} isPlaying={isPlaying} {...scaleProps} />
