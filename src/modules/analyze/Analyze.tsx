@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { IoIosArrowRoundBack } from 'react-icons/io';
 import { useTrack } from '~/audio/useTrack';
 import { Slider } from '~/components/Slider';
@@ -7,12 +7,13 @@ import { SourceDisplay } from './SourceDisplay';
 import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { Track } from './Track';
 import { TopControls } from './TopControls';
+import { ControlBox } from './ControlBox';
 
 export const Analyze = () => {
   const router = useRouter();
   const status = useTrack(track => track.status);
-
-  const [gain, setGain] = useState(0.5);
+  const gain = useTrack(track => track.gain);
+  const setGain = useTrack(track => track.setGain);
 
   useInitializeAnalyze();
 
@@ -33,9 +34,17 @@ export const Analyze = () => {
       </button>
 
       <SourceDisplay />
+
       <TopControls />
-      <Slider horizontal className='w-96' value={gain} onChange={setGain} />
-      <Slider vertical className='h-48' value={gain} onChange={setGain} />
+
+      <div className='flex w-full flex-1 items-center justify-around'>
+        <ControlBox className='h-5/6' label='GAIN' displayValue={gain.toFixed(2)}>
+          <Slider vertical className='h-full' value={gain} onChange={setGain} />
+        </ControlBox>
+        <ControlBox label='PAN'>
+          <Slider horizontal className='w-64' />
+        </ControlBox>
+      </div>
     </div>
   );
 };

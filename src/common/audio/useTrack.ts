@@ -21,6 +21,8 @@ const DEFAULT_VALUES: Complete<StripFunctions<Track>> = {
 
   startedPlayingAt: undefined,
 
+  gain: 0.75,
+
   source: undefined,
   samples: new Float32Array(),
 
@@ -314,6 +316,11 @@ export const useTrack = create<Track>((set, get) => {
       if (options.restartPlayback && isPlaying && type === 'loop') play();
 
       return get();
+    },
+
+    setGain(gain) {
+      gainNode.gain.value = gain;
+      set({ gain });
     },
 
     getNormalized,

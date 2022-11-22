@@ -39,6 +39,8 @@ export type Track = {
   startedPlayingAt?: number;
   audioContext?: AudioContext;
 
+  gain: number;
+
   canvasDomSize: { width?: number; height?: number };
 
   zoomState: ZoomState;
@@ -57,6 +59,8 @@ export type Track = {
     locators?: Locators | ((currentLocators?: Locators) => Locators | undefined),
     options?: UpdateLocatorOptions,
   ): Pick<Track, 'draw'>;
+
+  setGain(gain: number): void;
 
   getNormalized<T extends number | Locators>(local: T): T;
   getLocalized<T extends number | Locators>(local: T): T;
