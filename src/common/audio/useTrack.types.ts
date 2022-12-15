@@ -39,7 +39,10 @@ export type Track = {
   startedPlayingAt?: number;
   audioContext?: AudioContext;
 
+  isMono: boolean;
+
   gain: number;
+  pan: number;
 
   canvasDomSize: { width?: number; height?: number };
 
@@ -61,8 +64,19 @@ export type Track = {
   ): Pick<Track, 'draw'>;
 
   setGain(gain: number): void;
+  setPan(pan: number): void;
 
   getNormalized<T extends number | Locators>(local: T): T;
   getLocalized<T extends number | Locators>(local: T): T;
   getLoopTimes(): [number, number];
 } & TrackLocators;
+
+type PanChannelGain = {
+  leftNode: GainNode;
+  rightNode: GainNode;
+};
+
+export type PanGain = {
+  leftChannel: PanChannelGain;
+  rightChannel: PanChannelGain;
+};

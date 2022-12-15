@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { IoIosArrowRoundBack } from 'react-icons/io';
 import { useTrack } from '~/audio/useTrack';
 import { Slider } from '~/components/Slider';
@@ -8,14 +8,21 @@ import { useInitializeAnalyze } from './useInitializeAnalyze';
 import { Track } from './Track';
 import { TopControls } from './TopControls';
 import { ControlBox } from './ControlBox';
+import { getPan } from 'src/common/getPan';
 
 export const Analyze = () => {
   const router = useRouter();
   const status = useTrack(track => track.status);
+
   const gain = useTrack(track => track.gain);
   const setGain = useTrack(track => track.setGain);
+  const pan = useTrack(track => track.pan);
+  const setPan = useTrack(track => track.setPan);
+  const isMono = useTrack(track => track.isMono);
 
   useInitializeAnalyze();
+
+  const panDisplayText = useMemo(() => getPan(pan).toFixed(2), [pan]);
 
   const handleOnClickBack = useCallback(() => {
     router.push('/');
@@ -30,7 +37,7 @@ export const Analyze = () => {
       <Track className='relative h-1/2 w-full' />
 
       <button className='absolute top-0 left-1' onClick={handleOnClickBack}>
-        <IoIosArrowRoundBack className='text-slate-500 opacity-60' size={40} />
+        <IoIosArrowRoundBack className='text-primary/60' size={40} />
       </button>
 
       <SourceDisplay />
@@ -41,8 +48,8 @@ export const Analyze = () => {
         <ControlBox className='h-5/6' label='GAIN' displayValue={gain.toFixed(2)}>
           <Slider vertical className='h-full' value={gain} onChange={setGain} />
         </ControlBox>
-        <ControlBox label='PAN'>
-          <Slider horizontal className='w-64' />
+        <ControlBox disabled={isMono} label='PAN' displayValue={panDisplayText}>
+          <Slider horizontal className='w-64' value={pan} onChange={setPan} />
         </ControlBox>
       </div>
     </div>

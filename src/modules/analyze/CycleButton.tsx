@@ -10,9 +10,9 @@ export const CycleButton = motion(
   forwardRef(({ isActive, className, ...props }: Props, ref: Ref<HTMLButtonElement>) => (
     <button
       className={c(
-        'flex items-center justify-center rounded text-slate-500',
+        'flex items-center justify-center rounded text-primary',
         {
-          'bg-slate-500': isActive,
+          'bg-primary': isActive,
           'bg-black': !isActive,
           'opacity-60': props.disabled,
         },

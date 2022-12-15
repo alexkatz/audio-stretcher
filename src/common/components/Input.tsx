@@ -6,7 +6,7 @@ export const Input = forwardRef(({ className, ...props }: HTMLMotionProps<'input
   <motion.input
     ref={ref}
     className={c(
-      'bg-transparent placeholder-slate-700 caret-slate-500 text-slate-500 border rounded border-slate-500 px-2 py-1 focus:outline-0',
+      'rounded border border-primary bg-transparent px-2 py-1 text-primary placeholder-primary/60 caret-primary focus:outline-0',
       className,
     )}
     {...props}

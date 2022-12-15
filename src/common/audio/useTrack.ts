@@ -1,6 +1,7 @@
 import create from 'zustand';
+import { getPan } from '../getPan';
 import { Locators } from '../types/Locators';
-import type { Track, TrackLocators, TrackStatus } from './useTrack.types';
+import type { PanGain, Track, TrackLocators, TrackStatus } from './useTrack.types';
 
 // TODO: https://github.com/olvb/phaze/
 
@@ -22,6 +23,9 @@ const DEFAULT_VALUES: Complete<StripFunctions<Track>> = {
   startedPlayingAt: undefined,
 
   gain: 0.75,
+  pan: 0.5,
+
+  isMono: false,
 
   source: undefined,
   samples: new Float32Array(),
@@ -44,6 +48,11 @@ export const useTrack = create<Track>((set, get) => {
 
   let bufferSource: AudioBufferSourceNode | undefined;
   let gainNode!: GainNode;
+
+  let panGain!: PanGain;
+
+  let inputSplitterNode!: ChannelSplitterNode;
+  let outputMergerNode!: ChannelMergerNode;
 
   let canvas!: HTMLCanvasElement;
   let context!: CanvasRenderingContext2D;
@@ -267,7 +276,19 @@ export const useTrack = create<Track>((set, get) => {
       bufferSource.loopStart = startTime;
       bufferSource.loopEnd = endTime;
 
-      bufferSource.connect(gainNode);
+      bufferSource.connect(inputSplitterNode);
+
+      inputSplitterNode.connect(panGain.leftChannel.leftNode, 0, 0);
+      inputSplitterNode.connect(panGain.leftChannel.rightNode, 1, 0);
+      inputSplitterNode.connect(panGain.rightChannel.leftNode, 0, 0);
+      inputSplitterNode.connect(panGain.rightChannel.rightNode, 1, 0);
+
+      panGain.leftChannel.leftNode.connect(outputMergerNode, 0, 0);
+      panGain.leftChannel.rightNode.connect(outputMergerNode, 0, 0);
+      panGain.rightChannel.leftNode.connect(outputMergerNode, 0, 1);
+      panGain.rightChannel.rightNode.connect(outputMergerNode, 0, 1);
+
+      outputMergerNode.connect(gainNode);
 
       gainNode.connect(audioContext.destination);
 
@@ -321,6 +342,18 @@ export const useTrack = create<Track>((set, get) => {
     setGain(gain) {
       gainNode.gain.value = gain;
       set({ gain });
+    },
+
+    setPan(pan) {
+      const adjusted = getPan(pan);
+
+      panGain.leftChannel.leftNode.gain.value = adjusted < 0 ? 1 : 1 - adjusted;
+      panGain.leftChannel.rightNode.gain.value = adjusted < 0 ? 0 : adjusted;
+
+      panGain.rightChannel.leftNode.gain.value = adjusted > 0 ? 0 : adjusted * -1;
+      panGain.rightChannel.rightNode.gain.value = adjusted > 0 ? 1 : 1 + adjusted;
+
+      set({ pan });
     },
 
     getNormalized,
@@ -396,15 +429,34 @@ export const useTrack = create<Track>((set, get) => {
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         const leftChannelData = audioBuffer.getChannelData(0);
         const rightChannelData = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : undefined;
+        const isMono = rightChannelData == null;
 
-        const samples =
-          rightChannelData == null
-            ? leftChannelData
-            : leftChannelData.map((left, i) => (left + (rightChannelData[i] ?? left)) / 2);
+        const samples = isMono
+          ? leftChannelData
+          : leftChannelData.map((left, i) => (left + (rightChannelData[i] ?? left)) / 2);
 
         status = 'initialized';
 
+        inputSplitterNode = audioContext.createChannelSplitter(2);
+        outputMergerNode = audioContext.createChannelMerger(2);
+
         gainNode = audioContext.createGain();
+
+        panGain = {
+          leftChannel: {
+            leftNode: audioContext.createGain(),
+            rightNode: audioContext.createGain(),
+          },
+          rightChannel: {
+            leftNode: audioContext.createGain(),
+            rightNode: audioContext.createGain(),
+          },
+        };
+
+        panGain.leftChannel.leftNode.gain.value = 1;
+        panGain.leftChannel.rightNode.gain.value = 0;
+        panGain.rightChannel.rightNode.gain.value = 1;
+        panGain.rightChannel.leftNode.gain.value = 0;
 
         set({
           status,
@@ -413,7 +465,10 @@ export const useTrack = create<Track>((set, get) => {
           audioBuffer,
           audioContext,
           samples,
+          isMono,
         });
+
+        get().setPan(isMono ? 0 : 0.5);
 
         return status;
       } catch (error) {

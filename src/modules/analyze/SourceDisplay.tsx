@@ -14,7 +14,7 @@ export const SourceDisplay = ({ className }: Props) => {
   return (
     <div
       className={c(
-        'absolute top-1 right-1 flex select-none flex-col items-end p-1 font-extralight text-slate-500',
+        'absolute top-1 right-1 flex select-none flex-col items-end p-1 font-extralight text-primary',
         className,
       )}
     >

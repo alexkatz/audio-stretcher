@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect } from 'react';
+import { useState, useLayoutEffect, memo } from 'react';
 import { useKeyDown } from '~/hooks/useKeyboard';
 import { c } from '~/utils/classnames';
 import { useTrack } from '../../common/audio/useTrack';
@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-export const Track = ({ className }: Props) => {
+export const Track = memo(({ className }: Props) => {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
 
   useKeyDown(({ code, shiftKey }) => {
@@ -41,4 +41,4 @@ export const Track = ({ className }: Props) => {
       <canvas className='h-full w-full' ref={setCanvas} {...canvasHandlers} />
     </div>
   );
-};
+});

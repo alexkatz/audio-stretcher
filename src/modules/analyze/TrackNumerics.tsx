@@ -40,7 +40,7 @@ export const TrackNumerics = ({ className }: Props) => {
   );
 
   return (
-    <div className={c('flex select-none flex-row items-center justify-between p-2 text-xl text-slate-500', className)}>
+    <div className={c('flex select-none flex-row items-center justify-between p-2 text-xl text-primary', className)}>
       <div className='flex flex-row items-center justify-start gap-2'>
         {loopStart != null && <span>{loopStart}</span>}
         {loopEnd != null && <span>{loopEnd}</span>}

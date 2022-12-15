@@ -80,13 +80,13 @@ export const Slider = ({ className, vertical, horizontal, value, onChange }: Pro
       onMouseDown={handleOnMouseDown}
     >
       <div
-        className={c('rounded-sm bg-slate-700', {
+        className={c('rounded-sm bg-primary/20', {
           'h-1 w-full': horizontal,
           'h-full w-1': vertical,
         })}
       />
       <motion.div
-        className={c('absolute flex items-center rounded-sm bg-slate-500', {
+        className={c('absolute flex items-center rounded-sm bg-primary', {
           'h-1': horizontal,
           'w-1 flex-col-reverse': vertical,
         })}
@@ -96,7 +96,7 @@ export const Slider = ({ className, vertical, horizontal, value, onChange }: Pro
         }}
       >
         <motion.div
-          className={c('pointer-events-none absolute h-4 w-4 rounded-lg bg-slate-400', {
+          className={c('pointer-events-none absolute h-4 w-4 rounded-lg bg-primary', {
             '-right-2': horizontal,
             '-top-2': vertical,
           })}

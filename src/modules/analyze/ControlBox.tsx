@@ -5,15 +5,24 @@ type Props = {
   label?: string;
   children?: React.ReactNode;
   displayValue?: string | number;
+  disabled?: boolean;
 };
 
-export const ControlBox = ({ className, label, children, displayValue }: Props) => {
+export const ControlBox = ({ className, label, children, displayValue, disabled }: Props) => {
   return (
-    <div className={c('flex select-none flex-col items-center gap-2 p-2', className)}>
+    <div
+      className={c(
+        'flex select-none flex-col items-center gap-2 p-2',
+        {
+          'pointer-events-none opacity-40': disabled,
+        },
+        className,
+      )}
+    >
       {children}
       <div className='flex flex-col items-center gap-0.5'>
-        {label && <div className='text-xs text-slate-500'>{label}</div>}
-        {displayValue && <div className='text-xs text-slate-500'>{displayValue}</div>}
+        {label && <div className='text-xs text-primary'>{label}</div>}
+        {displayValue && <div className='text-xs text-primary'>{displayValue}</div>}
       </div>
     </div>
   );

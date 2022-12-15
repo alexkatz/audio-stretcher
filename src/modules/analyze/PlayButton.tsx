@@ -9,7 +9,7 @@ type Props = ComponentPropsWithoutRef<'button'> & {
 
 export const PlayButton = motion(
   forwardRef(({ className, isPlaying, ...props }: Props, ref: Ref<HTMLButtonElement>) => (
-    <button className={c('flex items-center justify-center text-slate-500', className)} ref={ref} {...props}>
+    <button className={c('flex items-center justify-center text-primary', className)} ref={ref} {...props}>
       {isPlaying ? <IoIosPause className='h-5/6 w-5/6' /> : <IoIosPlay className='h-5/6 w-5/6' />}
     </button>
   )),
