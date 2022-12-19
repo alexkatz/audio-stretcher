@@ -33,14 +33,14 @@ export const Analyze = () => {
   }
 
   return (
-    <div className='relative flex h-screen flex-col items-center'>
-      <Track className='relative h-1/2 w-full' />
+    <div className='relative flex h-screen flex-col items-center bg-black'>
+      <Track className='relative h-1/2 w-full bg-gradient-to-b from-black to-black-200/40' />
 
-      <button className='absolute top-0 left-1' onClick={handleOnClickBack}>
-        <IoIosArrowRoundBack className='text-primary/60' size={40} />
+      <button className='absolute top-0 left-0' onClick={handleOnClickBack}>
+        <IoIosArrowRoundBack className='text-ivory/60' size={40} />
       </button>
 
-      <SourceDisplay />
+      <SourceDisplay className='absolute top-0 right-0' />
 
       <TopControls />
 

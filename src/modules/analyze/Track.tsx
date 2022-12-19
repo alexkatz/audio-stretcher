@@ -1,6 +1,6 @@
 import { useState, useLayoutEffect, memo } from 'react';
 import { useKeyDown } from '~/hooks/useKeyboard';
-import { c } from '~/utils/classnames';
+import clsx from 'clsx';
 import { useTrack } from '../../common/audio/useTrack';
 import { useAnimatePlayback } from './useAnimatePlayback';
 import { useCanvasEventHandlers } from './useCanvasEventHandlers';
@@ -37,7 +37,7 @@ export const Track = memo(({ className }: Props) => {
   const canvasHandlers = useCanvasEventHandlers(canvas);
 
   return (
-    <div className={c('relative cursor-text', className)}>
+    <div className={clsx('relative cursor-text', className)}>
       <canvas className='h-full w-full' ref={setCanvas} {...canvasHandlers} />
     </div>
   );

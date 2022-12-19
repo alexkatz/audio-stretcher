@@ -97,7 +97,7 @@ export const RecentSession = ({ summary }: Props) => {
       whileHover='hover'
       initial='rest'
       whileTap='tap'
-      className='relative flex h-full flex-col items-center justify-center text-2xl text-primary hover:cursor-pointer'
+      className='relative flex h-full flex-col items-center justify-center text-2xl hover:cursor-pointer'
       onClick={handleOnClick}
     >
       <motion.div
@@ -107,7 +107,7 @@ export const RecentSession = ({ summary }: Props) => {
         <motion.div className='max-w-3/4 truncate text-ellipsis font-light' variants={textVariants}>
           {summary.displayName}
         </motion.div>
-        <motion.div className='text-xs text-primary' variants={textVariants}>
+        <motion.div className='text-xs' variants={textVariants}>
           {lastOpenedAt}
         </motion.div>
       </motion.div>

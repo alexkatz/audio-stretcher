@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ComponentPropsWithoutRef, forwardRef, Ref } from 'react';
-import { c } from '~/utils/classnames';
+import clsx from 'clsx';
 
 type Props = ComponentPropsWithoutRef<'button'> & {
   isActive: boolean;
@@ -9,11 +9,11 @@ type Props = ComponentPropsWithoutRef<'button'> & {
 export const CycleButton = motion(
   forwardRef(({ isActive, className, ...props }: Props, ref: Ref<HTMLButtonElement>) => (
     <button
-      className={c(
-        'flex items-center justify-center rounded text-primary',
+      className={clsx(
+        'flex items-center justify-center rounded',
         {
-          'bg-primary': isActive,
-          'bg-black': !isActive,
+          'bg-ivory': isActive,
+          'bg-transparent': !isActive,
           'opacity-60': props.disabled,
         },
         className,

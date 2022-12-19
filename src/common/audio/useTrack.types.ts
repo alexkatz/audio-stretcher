@@ -80,3 +80,9 @@ export type PanGain = {
   leftChannel: PanChannelGain;
   rightChannel: PanChannelGain;
 };
+
+export type CanvasColors = {
+  loop: string;
+  cursor: string;
+  shadow: string;
+};

@@ -1,7 +1,7 @@
-import { motion } from 'framer-motion';
+import clsx from 'clsx';
 import { MouseEvent, useCallback, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useMouseMove, useMouseUp } from '~/hooks/useMouse';
-import { c } from '~/utils/classnames';
 
 type VerticalProp = { vertical: true };
 type HorizontalProp = { horizontal: true };
@@ -68,7 +68,7 @@ export const Slider = ({ className, vertical, horizontal, value, onChange }: Pro
 
   return (
     <span
-      className={c(
+      className={clsx(
         'relative flex cursor-pointer items-center [&>*]:pointer-events-none',
         {
           'h-4': horizontal,
@@ -80,13 +80,13 @@ export const Slider = ({ className, vertical, horizontal, value, onChange }: Pro
       onMouseDown={handleOnMouseDown}
     >
       <div
-        className={c('rounded-sm bg-primary/20', {
+        className={clsx('rounded-sm bg-ivory/20', {
           'h-1 w-full': horizontal,
           'h-full w-1': vertical,
         })}
       />
       <motion.div
-        className={c('absolute flex items-center rounded-sm bg-primary', {
+        className={clsx('absolute flex items-center rounded-sm bg-ivory', {
           'h-1': horizontal,
           'w-1 flex-col-reverse': vertical,
         })}
@@ -96,7 +96,7 @@ export const Slider = ({ className, vertical, horizontal, value, onChange }: Pro
         }}
       >
         <motion.div
-          className={c('pointer-events-none absolute h-4 w-4 rounded-lg bg-primary', {
+          className={clsx('pointer-events-none absolute h-4 w-4 rounded-lg bg-ivory', {
             '-right-2': horizontal,
             '-top-2': vertical,
           })}

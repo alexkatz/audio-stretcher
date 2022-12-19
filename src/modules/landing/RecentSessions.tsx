@@ -1,5 +1,5 @@
 import { forwardRef, Ref, useEffect, useMemo, useRef } from 'react';
-import { c } from '~/utils/classnames';
+import clsx from 'clsx';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -48,7 +48,7 @@ export const RecentSessions = motion(
     }, [fetchNextPage, hasNextPage, isFetchingNextPage, summaries.length, virtualItems]);
 
     return (
-      <div className={c('overflow-y-scroll', className)} ref={mergeRefs(parentRef, ref)}>
+      <div className={clsx('overflow-y-scroll', className)} ref={mergeRefs(parentRef, ref)}>
         <div className='relative w-full' style={{ height: totalSize }}>
           {virtualItems.map(({ key, size, start, index }) => {
             const summary = summaries[index];

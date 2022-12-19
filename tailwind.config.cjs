@@ -4,8 +4,13 @@ module.exports = {
   plugins: [],
   theme: {
     colors: {
-      black: 'black',
-      primary: '#8fa5b1',
+      black: {
+        DEFAULT: 'rgb(var(--black) / <alpha-value>)',
+        100: '#0d0f11',
+        200: '#1a1e21',
+        300: '#272d31',
+      },
+      ivory: 'rgb(var(--ivory) / <alpha-value>)',
       transparent: 'transparent',
     },
     opacity: {
@@ -15,6 +20,9 @@ module.exports = {
       60: '0.6',
       80: '0.8',
       100: '1',
+    },
+    fontFamily: {
+      sans: ['Open Sans', 'sans-serif'],
     },
     extend: {
       spacing: {

@@ -44,7 +44,7 @@ export const Landing = () => {
     if (isLoadingFile) {
       return (
         <>
-          {'Loading '} <span className='text-primary'>{droppedFileName}</span>
+          {'Loading '} <span>{droppedFileName}</span>
           {'...'}
         </>
       );
@@ -53,7 +53,7 @@ export const Landing = () => {
     return (
       <>
         {'paste in a youtube url, or drag in an '}
-        <span className='font-normal text-primary underline hover:cursor-pointer' onClick={() => open()}>
+        <span className='font-normal underline hover:cursor-pointer' onClick={() => open()}>
           {'audio file'}
         </span>
         {'.'}
@@ -68,8 +68,8 @@ export const Landing = () => {
       onClick={handleOnClickMain}
     >
       <input {...getInputProps()} />
-      <div className='select-none text-5xl font-extralight text-primary'>[audio stretcher]</div>
-      <span className=' select-none text-2xl font-extralight text-primary'>{instructions}</span>
+      <div className='select-none text-5xl font-extralight'>[audio stretcher]</div>
+      <span className='select-none text-2xl font-extralight'>{instructions}</span>
 
       <YoutubeInput inputRef={inputRef} isDragActive={isDragActive} isLoadingFile={isLoadingFile} />
 

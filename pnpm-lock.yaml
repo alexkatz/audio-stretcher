@@ -11,7 +11,7 @@ specifiers:
   '@typescript-eslint/eslint-plugin': ^5.46.1
   '@typescript-eslint/parser': ^5.46.1
   autoprefixer: ^10.4.13
-  classnames: ^2.3.2
+  clsx: ^1.2.1
   dayjs: ^1.11.7
   eslint: 8.29.0
   eslint-config-next: 13.0.6
@@ -41,7 +41,7 @@ dependencies:
   '@tanstack/react-query': 4.20.4_biqbaboplfbrettd7655fr4n2y
   '@tanstack/react-query-devtools': 4.20.4_fu3ixcwltlssi3ozitelgaebme
   '@tanstack/react-virtual': 3.0.0-beta.18_react@18.2.0
-  classnames: 2.3.2
+  clsx: 1.2.1
   dayjs: 1.11.7
   framer-motion: 7.9.1_biqbaboplfbrettd7655fr4n2y
   idb: 7.1.1
@@ -847,8 +847,9 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /classnames/2.3.2:
-    resolution: {integrity: sha512-CSbhY4cFEJRe6/GQzIk5qXZ4Jeg5pcsP7b5peFSDpffpe1cqjASH/n9UTjBwOp6XpMSTwQ8Za2K5V02ueA7Tmw==}
+  /clsx/1.2.1:
+    resolution: {integrity: sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==}
+    engines: {node: '>=6'}
     dev: false
 
   /color-convert/2.0.1:

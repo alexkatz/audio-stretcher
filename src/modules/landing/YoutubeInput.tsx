@@ -65,7 +65,7 @@ export const YoutubeInput = ({ inputRef, isDragActive = false, isLoadingFile = f
       <AnimatePresence>
         {isValidYoutubeUrl && (
           <motion.button
-            className='rounded border border-primary bg-primary px-2 text-black'
+            className='rounded border border-ivory bg-ivory px-2 text-black'
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

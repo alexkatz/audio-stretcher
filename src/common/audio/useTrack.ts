@@ -1,7 +1,7 @@
 import create from 'zustand';
 import { getPan } from '../getPan';
 import { Locators } from '../types/Locators';
-import type { PanGain, Track, TrackLocators, TrackStatus } from './useTrack.types';
+import type { CanvasColors, PanGain, Track, TrackLocators, TrackStatus } from './useTrack.types';
 
 // TODO: https://github.com/olvb/phaze/
 
@@ -63,6 +63,8 @@ export const useTrack = create<Track>((set, get) => {
   let samplesPerPixel!: number;
 
   let observer!: ResizeObserver;
+
+  let colors!: CanvasColors;
 
   const getLoopTimes = (): [number, number] => {
     const { audioBuffer, loopLocators, zoomLocators = DEFAULT_LOCATORS } = get();
@@ -144,8 +146,9 @@ export const useTrack = create<Track>((set, get) => {
       gradient.addColorStop(1, 'purple');
       offscreenContext.fillStyle = gradient;
 
-      offscreenContext.shadowColor = 'rgba(216, 184, 193, 0.5)';
-      offscreenContext.shadowBlur = 10;
+      // SHADOW
+      // offscreenContext.shadowColor = colors.shadow;
+      // offscreenContext.shadowBlur = 10;
 
       const centerY = canvas.height / 2;
 
@@ -182,7 +185,7 @@ export const useTrack = create<Track>((set, get) => {
     const x = cursor * canvas.width;
 
     context.save();
-    context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    context.fillStyle = colors.cursor;
     context.fillRect(x - CURSOR_WIDTH, 0, CURSOR_WIDTH, canvas.height);
     context.restore();
   };
@@ -195,7 +198,7 @@ export const useTrack = create<Track>((set, get) => {
     const x = getLocalized(start) * canvas.width;
 
     context.save();
-    context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    context.fillStyle = colors.cursor;
     context.fillRect(x, 0, CURSOR_WIDTH, canvas.height);
     context.restore();
   };
@@ -210,7 +213,7 @@ export const useTrack = create<Track>((set, get) => {
     const endX = end == null ? undefined : end * canvas.width;
 
     context.save();
-    context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    context.fillStyle = colors.loop;
     context.fillRect(startX, 0, endX ? endX - startX : CURSOR_WIDTH, canvas.height);
     context.restore();
   };
@@ -226,6 +229,13 @@ export const useTrack = create<Track>((set, get) => {
       context = canvas.getContext('2d')!;
       offscreenCanvas = document.createElement('canvas');
       offscreenContext = offscreenCanvas.getContext('2d')!;
+
+      const computed = getComputedStyle(canvas);
+      colors = {
+        loop: computed.getPropertyValue('--loop'),
+        shadow: computed.getPropertyValue('--shadow'),
+        cursor: computed.getPropertyValue('--cursor'),
+      };
 
       observer?.disconnect();
       observer = new ResizeObserver(([entry]) => {
